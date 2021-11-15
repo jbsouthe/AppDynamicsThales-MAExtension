@@ -1,0 +1,24 @@
+<monitor>
+    <name>ThalesMonitor</name>
+    <type>managed</type>
+    <description>Thales Monitor</description>
+    <monitor-configuration></monitor-configuration>
+    <monitor-run-task>
+        <execution-style>periodic</execution-style>
+        <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+        <name>Thales Monitor Run Task</name>
+        <display-name>Thales Monitor Task</display-name>
+        <description>Thales Monitor Task</description>
+        <type>java</type>
+        <execution-timeout-in-secs>60</execution-timeout-in-secs>
+        <task-arguments>
+            <argument name="thalesURL" is-required="true" default-value="" />
+            <argument name="apiUser" is-required="true" default-value="" />
+            <argument name="apiPassword" is-required="true" default-value="" />
+        </task-arguments>
+        <java-task>
+            <classpath>ThalesMonitorExtension.jar:lib/log4j-core-2.14.1.jar:lib/log4j-api-2.14.1.jar:lib/okio-2.8.0.jar:lib/okhttp-4.9.0.jar:lib/gson-2.8.8.jar</classpath>
+            <impl-class>com.cisco.josouthe.ThalesMonitor</impl-class>
+        </java-task>
+    </monitor-run-task>
+</monitor>

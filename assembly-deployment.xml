@@ -1,0 +1,32 @@
+<assembly>
+    <id>deployment</id>
+    <formats>
+        <format>tar.gz</format>
+        <format>tar.bz2</format>
+        <format>zip</format>
+    </formats>
+    <fileSets>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>ThalesMonitor</outputDirectory>
+            <includes>
+                <include>ThalesMonitorExtension.jar</include>
+                <include>README*</include>
+                <include>log4j2.xml</include>
+                <include>monitor.xml</include>
+            </includes>
+            <lineEnding>unix</lineEnding>
+            <fileMode>0644</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>lib</directory>
+            <outputDirectory>ThalesMonitor/lib</outputDirectory>
+            <includes>
+                <include>commons-*.jar</include>
+                <include>gson-*.jar</include>
+                <include>log4j*.jar</include>
+                <include>ok*.jar</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>
