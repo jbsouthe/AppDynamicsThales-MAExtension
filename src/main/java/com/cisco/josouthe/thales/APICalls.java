@@ -3,6 +3,7 @@ package com.cisco.josouthe.thales;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 import com.cisco.josouthe.thales.data.*;
 import com.google.gson.Gson;
@@ -78,7 +79,7 @@ public class APICalls {
 				.addHeader("Content-Type", "application/json").build();
 		Response response = newClient.newCall(request).execute();
 		String jsonData = response.body().string();
-		logger.trace("AuthToken JSON: %s",jsonData);
+		logger.info("AuthToken JSON: %s",jsonData);
 		AuthToken authToken = gson.fromJson(jsonData, AuthToken.class);
 		if( authToken == null ) throw new IOException("Error getting auth token from "+ urlString);
 		this.globalAuthToken = authToken;
@@ -323,8 +324,21 @@ public class APICalls {
 	
 
 	public static void main(String[] args) throws IOException {
-
-		
+		System.out.println("Usage: <java command> http://hostname/ <user> <password>");
+		APICalls apiCalls = new APICalls(args[0], args[1], args[2]);
+		ListClientCerts listClientCerts = apiCalls.listClientsCerts();
+		logger.info("Total Client Certs: %d", listClientCerts.total);
+		for( ClientCertificateInfo clientCertificateInfo : listClientCerts.resources ) {
+			logger.info("Client Certificates|%s: %d",  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
+		}
+		ListAlarms listAlarms = apiCalls.listAlarms();
+		Map<String,Integer> alarmsMap = listAlarms.getActiveAlarmCountsBySeverity();
+		for( String severity : alarmsMap.keySet() )
+			logger.info("Alarms Active Severity %s: %d", severity, alarmsMap.get(severity) );
+		ListTokens listTokens = apiCalls.listTokens();
+		Map<String,Integer> tokensMap = listTokens.getTokensCountsByStatus();
+		for( String state : tokensMap.keySet() )
+			logger.info("Tokens %s: %d", state, tokensMap.get(state) );
 	}
 
 }
