@@ -11,23 +11,21 @@ import java.util.Date;
 public class AuthToken {
     private static final Logger logger = LogManager.getFormatterLogger();
 
-    public String jwt, username, createdAt;
-    public long expiresIn;
+    public String jwt;
+    public long duration, createdTime;
+
+    public AuthToken() {
+        this.createdTime = Utility.now();
+    }
 
     public boolean isExpired() {
-        if( expiresIn == 0 ) {
+        if( duration == 0 ) {
             return false;
         } else {
-            //createdAt =~ "2021-11-12T17:42:46.33215Z"
-            try {
-                long now = new Date().getTime();
-                long expiresAtTime = Utility.getDateFromString(createdAt)+expiresIn;
-                if( now >= expiresAtTime ) return true;
-            } catch (ParseException e) {
-                logger.warn("Parse Exception in date string '%s'",createdAt);
-                return true;
-            }
+            long now = new Date().getTime();
+            long expiresAtTime = createdTime+(duration*1000);
+            if( now >= expiresAtTime ) return true;
+            return false;
         }
-        return true;
     }
 }
