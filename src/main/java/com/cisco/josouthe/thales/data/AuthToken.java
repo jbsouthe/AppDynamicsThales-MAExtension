@@ -11,7 +11,7 @@ import java.util.Date;
 public class AuthToken {
     private static final Logger logger = LogManager.getFormatterLogger();
 
-    public String jwt;
+    public String jwt, token_type, client_id, refresh_token_id, refresh_token;
     public long duration, createdTime;
 
     public AuthToken() {

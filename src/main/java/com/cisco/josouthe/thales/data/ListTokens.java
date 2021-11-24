@@ -5,13 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ListTokens {
-    public int skip, limit, total;
-    public List<Token> resources;
+public class ListTokens<T> extends GenericList<T> {
 
     public Map<String, Integer> getTokensCountsByStatus() {
         Map<String, Integer> map = new HashMap<>();
-        for( Token token : resources ) {
+        for( Token token : (List<Token>) resources ) {
             if( !token.expired && !token.revoked ) {
                 int count = map.getOrDefault("active", 0) +1;
                 map.put("active", count);

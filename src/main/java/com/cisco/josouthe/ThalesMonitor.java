@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 public class ThalesMonitor extends AManagedMonitor {
@@ -34,9 +35,9 @@ public class ThalesMonitor extends AManagedMonitor {
         );
 
         try {
-            ListClientCerts listClientCerts = thalesAPIClient.listClientsCerts();
+            ListClientCerts<ClientCertificateInfo> listClientCerts = thalesAPIClient.listClientsCerts();
             printMetricCurrent("Total Client Certificates", listClientCerts.total);
-            for( ClientCertificateInfo clientCertificateInfo : listClientCerts.resources ) {
+            for( ClientCertificateInfo clientCertificateInfo : (List<ClientCertificateInfo>) listClientCerts.resources ) {
                 printMetricCurrent("Client Certificates|"+  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
             }
         } catch (IOException e) {

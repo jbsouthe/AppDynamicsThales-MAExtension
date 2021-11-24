@@ -3,6 +3,7 @@ package com.cisco.josouthe.thales;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
 
 import com.cisco.josouthe.thales.data.*;
@@ -21,13 +22,18 @@ public class APICalls {
 
 	private String baseURL, urlString, userName, userPassword;
 	private AuthToken globalAuthToken;
+	private int maxLimit = 256;
 	private Gson gson;
 
 	public APICalls( String url, String user, String pass) {
 		this.urlString=url;
 		this.userName=user;
 		this.userPassword=pass;
-		this.baseURL=url+"/api/v1";
+		if( url.endsWith("/") ) {
+			this.baseURL = url + "api/v1";
+		} else {
+			this.baseURL = url + "/api/v1";
+		}
 		this.gson = new GsonBuilder().setPrettyPrinting().create();
 	}
 
@@ -86,12 +92,10 @@ public class APICalls {
 		return authToken.jwt;
 	}
 
-	public ListTokens listTokens() throws IOException {
-		return listTokens(0,256);
+	private String getRequest( String url ) throws IOException {
+		return executeRequest( url, "GET", null);
 	}
-
-	public ListTokens listTokens(int skip, int limit) throws IOException {
-
+	private String executeRequest( String url, String method, RequestBody requestBody) throws IOException {
 		String token = getToken();
 		// System.out.println(token);
 		String bearer = "Bearer " + token;
@@ -100,193 +104,109 @@ public class APICalls {
 		try {
 			client = getTrustAllCertsClient();
 		} catch (KeyManagementException e) {
-			e.printStackTrace();
+			throw new IOException("Key Management Exception: "+ e.getLocalizedMessage());
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			throw new IOException("No Such Algorithm Exception: "+ e.getLocalizedMessage());
 		}
-		Request request = new Request.Builder().url(String.format("%sauth/tokens/?skip=%d&limit=%d",baseURL, skip, limit) )
-			.method("GET", null)
-			.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListTokens.class);
-
-	}
-
-	public ListAlarms listAlarms() throws IOException {
-		return listAlarms(0, 256);
-	}
-
-	public ListAlarms listAlarms(int skip, int limit) throws IOException {
-
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		Request request = new Request.Builder().url(String.format("%ssystem/alarms?skip=%d&limit=%d", baseURL, skip, limit) )
-				.method("GET", null)
+		Request request = new Request.Builder().url( url )
+				.method(method, requestBody)
 				.addHeader("Authorization", bearer).build();
 		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListAlarms.class);
+		return response.body().string();
 	}
 
-	public ListClientCerts listClientsCerts() throws IOException {
-		return listClientsCerts(0, 256);
-	}
-
-	public ListClientCerts listClientsCerts(int skip, int limit) throws IOException {
-
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+	public ListTokens<Token> listTokens() throws IOException {
+		ListTokens<Token> listTokens = listTokens(0,maxLimit);
+		while( listTokens.hasMore() ) {
+			listTokens.add( listTokens( listTokens.limit, maxLimit) );
 		}
-
-		Request request = new Request.Builder().url(String.format("%sclient-management/clients/?skip=%d&limit=%d", baseURL, skip, limit ) )
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListClientCerts.class);
+		return listTokens;
 	}
 
-	public ListClients listClients() throws IOException {
-		return listClients(0, 256);
+	private ListTokens<Token> listTokens(int skip, int limit) throws IOException {
+
+		String json = getRequest(String.format("%s/auth/tokens/?skip=%d&limit=%d",baseURL, skip, limit));
+		return gson.fromJson(json, new ListTokens<Token>().getClass());
+
 	}
 
-	public ListClients listClients(int skip, int limit) throws IOException {
-
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+	public ListAlarms<Alarm> listAlarms() throws IOException {
+		ListAlarms<Alarm> listAlarms = listAlarms(0, maxLimit);
+		while( listAlarms.hasMore() ) {
+			listAlarms.add( listAlarms( listAlarms.limit, maxLimit) );
 		}
-
-		Request request = new Request.Builder()
-				.url(String.format("%stransparent-encryption/clients/?skip=%d&limit=%d&sort=updatedAt",baseURL, skip, limit) )
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListClients.class);
+		return listAlarms;
 	}
 
-	public ClientHealthReport clientHealthReport() throws IOException {
-		return clientHealthReport(0, 256);
+	private ListAlarms<Alarm> listAlarms(int skip, int limit) throws IOException {
+
+		String json = getRequest(String.format("%s/system/alarms?skip=%d&limit=%d", baseURL, skip, limit) );
+		return gson.fromJson(json, new ListAlarms<Alarm>().getClass());
 	}
 
-	public ClientHealthReport clientHealthReport(int skip, int limit) throws IOException {
-
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+	public ListClientCerts<ClientCertificateInfo> listClientsCerts() throws IOException {
+		ListClientCerts<ClientCertificateInfo> listClientCerts = listClientsCerts(0, maxLimit);
+		while( listClientCerts.hasMore() ) {
+			listClientCerts.add( listClientsCerts( listClientCerts.limit, maxLimit));
 		}
+		return listClientCerts;
+	}
 
-		Request request = new Request.Builder()
-				.url(String.format("%stransparent-encryption/reports/clients/?sort=client_name&skip=%d&limit=%d",baseURL,skip,limit ))
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ClientHealthReport.class);
+	private ListClientCerts<ClientCertificateInfo> listClientsCerts(int skip, int limit) throws IOException {
+
+		String json = getRequest(String.format("%s/client-management/clients/?skip=%d&limit=%d", baseURL, skip, limit ) );
+		logger.info("List Client Certs JSON Response: '%s'", json );
+		return gson.fromJson(json, new ListClientCerts<ClientCertificateInfo>().getClass());
+	}
+
+	public ListClients<Client> listClients() throws IOException {
+		ListClients<Client> listClients = listClients(0, maxLimit);
+		while( listClients.hasMore() ) {
+			listClients.add( listClients( listClients.limit, maxLimit));
+		}
+		return listClients;
+	}
+
+	private ListClients<Client> listClients(int skip, int limit) throws IOException {
+
+		String json = getRequest(String.format("%s/transparent-encryption/clients/?skip=%d&limit=%d&sort=updatedAt",baseURL, skip, limit) );
+		return gson.fromJson(json, new ListClients<Client>().getClass());
+	}
+
+	public ListClientHealthReport<ClientHealthReport> listClientHealthReport() throws IOException {
+		ListClientHealthReport<ClientHealthReport> listClientHealthReport = listClientHealthReport(0, maxLimit);
+		while( listClientHealthReport.hasMore() ) {
+			listClientHealthReport.add( listClientHealthReport( listClientHealthReport.limit, maxLimit));
+		}
+		return listClientHealthReport;
+	}
+
+	private ListClientHealthReport<ClientHealthReport> listClientHealthReport(int skip, int limit) throws IOException {
+
+		String json = getRequest(String.format("%s/transparent-encryption/reports/clients/?sort=client_name&skip=%d&limit=%d",baseURL,skip,limit ));
+		return gson.fromJson(json, new ListClientHealthReport<ClientHealthReport>().getClass());
 	}
 
 	public ListClusterNodeHealth clusterNodes() throws IOException {
 
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		Request request = new Request.Builder().url(baseURL + "/nodes")
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListClusterNodeHealth.class);
+		String json = getRequest(baseURL + "/nodes");
+		return gson.fromJson(json, ListClusterNodeHealth.class);
 	}
 
 	public String listClusters() throws IOException {
 
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		Request request = new Request.Builder().url(baseURL + "/cluster")
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return response.body().string();
+		String json = getRequest(baseURL + "/cluster");
+		return json;
 	}
 
 	public ListConnections listConnections() throws IOException {
 		return listConnections(0,256);
 	}
 
-	public ListConnections listConnections(int skip, int limit) throws IOException {
+	private ListConnections listConnections(int skip, int limit) throws IOException {
 
-		String token = getToken();
-		// System.out.println(token);
-		String bearer = "Bearer " + token;
-		// System.out.println(bearer);
-		OkHttpClient client = null;
-		try {
-			client = getTrustAllCertsClient();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		Request request = new Request.Builder()
-				.url(String.format("%sconnectionmgmt/connections?skip=%d&limit=%d&sort=updatedAt", baseURL, skip, limit) )
-				.method("GET", null)
-				.addHeader("Authorization", bearer).build();
-		Response response = client.newCall(request).execute();
-		return gson.fromJson(response.body().string(), ListConnections.class);
+		String json = getRequest(String.format("%s/connectionmgmt/connections?skip=%d&limit=%d&sort=updatedAt", baseURL, skip, limit) );
+		return gson.fromJson(json, ListConnections.class);
 	}
 	
 	public void run() {
@@ -305,7 +225,7 @@ public class APICalls {
 			System.out.println(listClients());
 			System.out.println(
 					"*************************************List Client Health Report****************************************");
-			System.out.println(clientHealthReport());
+			System.out.println(listClientHealthReport());
 			System.out.println(
 					"*************************************Cluster Node Health****************************************");
 			System.out.println(clusterNodes());
@@ -328,7 +248,7 @@ public class APICalls {
 		APICalls apiCalls = new APICalls(args[0], args[1], args[2]);
 		ListClientCerts listClientCerts = apiCalls.listClientsCerts();
 		logger.info("Total Client Certs: %d", listClientCerts.total);
-		for( ClientCertificateInfo clientCertificateInfo : listClientCerts.resources ) {
+		for( ClientCertificateInfo clientCertificateInfo : (List<ClientCertificateInfo>) listClientCerts.resources ) {
 			logger.info("Client Certificates|%s: %d",  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
 		}
 		ListAlarms listAlarms = apiCalls.listAlarms();
