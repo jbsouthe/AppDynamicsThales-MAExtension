@@ -26,6 +26,8 @@
                 <include>gson-*.jar</include>
                 <include>log4j*.jar</include>
                 <include>ok*.jar</include>
+                <include>kotlin*.jar</include>
+                <include>annotations*.jar</include>
             </includes>
         </fileSet>
     </fileSets>
