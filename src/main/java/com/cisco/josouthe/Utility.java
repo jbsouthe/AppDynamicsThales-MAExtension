@@ -6,7 +6,6 @@ import org.apache.logging.log4j.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utility {
@@ -33,7 +32,7 @@ public class Utility {
 
     public static long now() { return new Date().getTime(); }
 
-    public static long gateDaysUntil(String valid_until) {
+    public static long getDaysUntil(String valid_until) {
         try {
             long expirationTime = getDateFromString(valid_until)-now();
             return expirationTime/dayInMilliseconds;
