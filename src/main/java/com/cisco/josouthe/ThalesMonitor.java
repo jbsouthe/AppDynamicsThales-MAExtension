@@ -1,7 +1,10 @@
 package com.cisco.josouthe;
 
-import com.cisco.josouthe.thales.data.*;
 import com.cisco.josouthe.thales.APICalls;
+import com.cisco.josouthe.thales.data.ClientCertificateInfo;
+import com.cisco.josouthe.thales.data.ListAlarms;
+import com.cisco.josouthe.thales.data.ListClientCerts;
+import com.cisco.josouthe.thales.data.ListTokens;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
@@ -11,9 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.List;
 import java.util.Map;
 
 public class ThalesMonitor extends AManagedMonitor {
@@ -35,9 +35,9 @@ public class ThalesMonitor extends AManagedMonitor {
         );
 
         try {
-            ListClientCerts<ClientCertificateInfo> listClientCerts = thalesAPIClient.listClientsCerts();
+            ListClientCerts listClientCerts = thalesAPIClient.listClientsCerts();
             printMetricCurrent("Total Client Certificates", listClientCerts.total);
-            for( ClientCertificateInfo clientCertificateInfo : (List<ClientCertificateInfo>) listClientCerts.resources ) {
+            for( ClientCertificateInfo clientCertificateInfo : listClientCerts.resources ) {
                 printMetricCurrent("Client Certificates|"+  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
             }
         } catch (IOException e) {

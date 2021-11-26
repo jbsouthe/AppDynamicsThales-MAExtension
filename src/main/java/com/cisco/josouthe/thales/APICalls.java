@@ -1,11 +1,5 @@
 package com.cisco.josouthe.thales;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Map;
-
 import com.cisco.josouthe.thales.data.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -16,6 +10,10 @@ import org.apache.logging.log4j.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 public class APICalls {
 	private static final Logger logger = LogManager.getFormatterLogger();
@@ -115,76 +113,76 @@ public class APICalls {
 		return response.body().string();
 	}
 
-	public ListTokens<Token> listTokens() throws IOException {
-		ListTokens<Token> listTokens = listTokens(0,maxLimit);
+	public ListTokens listTokens() throws IOException {
+		ListTokens listTokens = listTokens(0,maxLimit);
 		while( listTokens.hasMore() ) {
 			listTokens.add( listTokens( listTokens.limit, maxLimit) );
 		}
 		return listTokens;
 	}
 
-	private ListTokens<Token> listTokens(int skip, int limit) throws IOException {
+	private ListTokens listTokens(int skip, int limit) throws IOException {
 
 		String json = getRequest(String.format("%s/auth/tokens/?skip=%d&limit=%d",baseURL, skip, limit));
-		return gson.fromJson(json, new ListTokens<Token>().getClass());
+		return gson.fromJson(json, ListTokens.class);
 
 	}
 
-	public ListAlarms<Alarm> listAlarms() throws IOException {
-		ListAlarms<Alarm> listAlarms = listAlarms(0, maxLimit);
+	public ListAlarms listAlarms() throws IOException {
+		ListAlarms listAlarms = listAlarms(0, maxLimit);
 		while( listAlarms.hasMore() ) {
 			listAlarms.add( listAlarms( listAlarms.limit, maxLimit) );
 		}
 		return listAlarms;
 	}
 
-	private ListAlarms<Alarm> listAlarms(int skip, int limit) throws IOException {
+	private ListAlarms listAlarms(int skip, int limit) throws IOException {
 
 		String json = getRequest(String.format("%s/system/alarms?skip=%d&limit=%d", baseURL, skip, limit) );
-		return gson.fromJson(json, new ListAlarms<Alarm>().getClass());
+		return gson.fromJson(json, ListAlarms.class);
 	}
 
-	public ListClientCerts<ClientCertificateInfo> listClientsCerts() throws IOException {
-		ListClientCerts<ClientCertificateInfo> listClientCerts = listClientsCerts(0, maxLimit);
+	public ListClientCerts listClientsCerts() throws IOException {
+		ListClientCerts listClientCerts = listClientsCerts(0, maxLimit);
 		while( listClientCerts.hasMore() ) {
 			listClientCerts.add( listClientsCerts( listClientCerts.limit, maxLimit));
 		}
 		return listClientCerts;
 	}
 
-	private ListClientCerts<ClientCertificateInfo> listClientsCerts(int skip, int limit) throws IOException {
+	private ListClientCerts listClientsCerts(int skip, int limit) throws IOException {
 
 		String json = getRequest(String.format("%s/client-management/clients/?skip=%d&limit=%d", baseURL, skip, limit ) );
 		logger.info("List Client Certs JSON Response: '%s'", json );
-		return gson.fromJson(json, new ListClientCerts<ClientCertificateInfo>().getClass());
+		return gson.fromJson(json, ListClientCerts.class);
 	}
 
-	public ListClients<Client> listClients() throws IOException {
-		ListClients<Client> listClients = listClients(0, maxLimit);
+	public ListClients listClients() throws IOException {
+		ListClients listClients = listClients(0, maxLimit);
 		while( listClients.hasMore() ) {
 			listClients.add( listClients( listClients.limit, maxLimit));
 		}
 		return listClients;
 	}
 
-	private ListClients<Client> listClients(int skip, int limit) throws IOException {
+	private ListClients listClients(int skip, int limit) throws IOException {
 
 		String json = getRequest(String.format("%s/transparent-encryption/clients/?skip=%d&limit=%d&sort=updatedAt",baseURL, skip, limit) );
-		return gson.fromJson(json, new ListClients<Client>().getClass());
+		return gson.fromJson(json, ListClients.class);
 	}
 
-	public ListClientHealthReport<ClientHealthReport> listClientHealthReport() throws IOException {
-		ListClientHealthReport<ClientHealthReport> listClientHealthReport = listClientHealthReport(0, maxLimit);
+	public ListClientHealthReport listClientHealthReport() throws IOException {
+		ListClientHealthReport listClientHealthReport = listClientHealthReport(0, maxLimit);
 		while( listClientHealthReport.hasMore() ) {
 			listClientHealthReport.add( listClientHealthReport( listClientHealthReport.limit, maxLimit));
 		}
 		return listClientHealthReport;
 	}
 
-	private ListClientHealthReport<ClientHealthReport> listClientHealthReport(int skip, int limit) throws IOException {
+	private ListClientHealthReport listClientHealthReport(int skip, int limit) throws IOException {
 
 		String json = getRequest(String.format("%s/transparent-encryption/reports/clients/?sort=client_name&skip=%d&limit=%d",baseURL,skip,limit ));
-		return gson.fromJson(json, new ListClientHealthReport<ClientHealthReport>().getClass());
+		return gson.fromJson(json, ListClientHealthReport.class);
 	}
 
 	public ListClusterNodeHealth clusterNodes() throws IOException {
@@ -248,7 +246,7 @@ public class APICalls {
 		APICalls apiCalls = new APICalls(args[0], args[1], args[2]);
 		ListClientCerts listClientCerts = apiCalls.listClientsCerts();
 		logger.info("Total Client Certs: %d", listClientCerts.total);
-		for( ClientCertificateInfo clientCertificateInfo : (List<ClientCertificateInfo>) listClientCerts.resources ) {
+		for( ClientCertificateInfo clientCertificateInfo :  listClientCerts.resources ) {
 			logger.info("Client Certificates|%s: %d",  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
 		}
 		ListAlarms listAlarms = apiCalls.listAlarms();

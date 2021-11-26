@@ -7,6 +7,6 @@ public class ClientCertificateInfo {
     public String updated_at, created_at, valid_until;
 
     public long daysUntilExpired() {
-        return Utility.gateDaysUntil( valid_until );
+        return Utility.getDaysUntil( valid_until );
     }
 }
