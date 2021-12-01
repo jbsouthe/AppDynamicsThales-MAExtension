@@ -1,7 +1,13 @@
 package com.cisco.josouthe;
 
+import com.cisco.josouthe.thales.analytics.Analytics;
+import com.cisco.josouthe.thales.analytics.AnalyticsSchemaException;
+import com.cisco.josouthe.thales.analytics.Schema;
 import com.cisco.josouthe.thales.api.APICalls;
-import com.cisco.josouthe.thales.api.data.*;
+import com.cisco.josouthe.thales.api.data.ClientCertificateInfo;
+import com.cisco.josouthe.thales.api.data.ListAlarms;
+import com.cisco.josouthe.thales.api.data.ListClientCerts;
+import com.cisco.josouthe.thales.api.data.ListTokens;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
@@ -11,18 +17,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Map;
 
 public class ThalesMonitor extends AManagedMonitor {
     private static final Logger logger = LogManager.getFormatterLogger();
     private String metricPrefix = "Custom Metrics|Thales Monitor|";
     private APICalls thalesAPIClient;
+    private Analytics analyticsAPIClient;
 
     @Override
     public TaskOutput execute(Map<String, String> configMap, TaskExecutionContext taskExecutionContext) throws TaskExecutionException {
-        String thalesURLString = configMap.get("thalesURL");
-        if( !thalesURLString.endsWith("/") ) thalesURLString+="/";
-        this.thalesAPIClient = new APICalls( thalesURLString, configMap.get("apiUser"), configMap.get("apiPassword") );
+        this.thalesAPIClient = new APICalls( configMap.get("thalesURL"), configMap.get("apiUser"), configMap.get("apiPassword") );
+        this.analyticsAPIClient = new Analytics( configMap.get("analytics_URL"), configMap.get("analytics_apiAccountName"), configMap.get("analytics_apiKey"));
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
 
         printMetric("up", 1,
@@ -34,11 +42,26 @@ public class ThalesMonitor extends AManagedMonitor {
         try {
             ListClientCerts listClientCerts = thalesAPIClient.listClientsCerts();
             printMetricCurrent("Total Client Certificates", listClientCerts.total);
+            ArrayList<Map<String,String>> data = new ArrayList<>();
+            Schema schema = null;
             for( ClientCertificateInfo clientCertificateInfo : listClientCerts.resources ) {
                 printMetricCurrent("Client Certificates|"+  clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired() );
+                if( schema == null ) {
+                    schema = clientCertificateInfo.getSchemaDefinition();
+                }
+                try {
+                    data.add(clientCertificateInfo.getSchemaData());
+                } catch (ParseException e) {
+                    logger.warn("Bad Date format in the client certificate data: %s", clientCertificateInfo.name);
+                }
             }
+            Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
+            if( !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
+            analyticsAPIClient.insertSchema(schema, data);
         } catch (IOException e) {
             logger.warn("Error fetching Client Certificate Data, Exception: %s",e.getMessage());
+        } catch (AnalyticsSchemaException e) {
+            logger.warn("Analytics Schema could not be determined for Client Certificate Info, Message: %s", e.getMessage());
         }
 
         try {

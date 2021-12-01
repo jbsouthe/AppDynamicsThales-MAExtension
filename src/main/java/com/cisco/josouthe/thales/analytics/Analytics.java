@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -74,6 +76,11 @@ public class Analytics {
         String json = schema.getDefinitionJSON();
         logger.trace("Create Schema JSON: %s",json);
         return postRequest(String.format("events/schema/%s",schema.name), json);
+    }
+
+    public String insertSchema( Schema schema, List<Map<String,String>> list) throws AnalyticsSchemaException, IOException {
+        Map<String,String>[] maps = list.toArray(new HashMap[list.size()]);
+        return insertSchema(schema, maps);
     }
 
     public String insertSchema(Schema schema, Map<String,String>... data) throws AnalyticsSchemaException, IOException {

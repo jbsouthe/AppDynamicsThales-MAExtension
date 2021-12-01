@@ -15,6 +15,9 @@
             <argument name="thalesURL" is-required="true" default-value="" />
             <argument name="apiUser" is-required="true" default-value="" />
             <argument name="apiPassword" is-required="true" default-value="" />
+            <argument name="analytics_URL" is-required="true" default-value="https://analytics.api.appdynamics.com/" />
+            <argument name="analytics_apiAccountName" is-required="true" default-value="" />
+            <argument name="analytics_apiKey" is-required="true" default-value="" />
         </task-arguments>
         <java-task>
             <classpath>ThalesMonitorExtension.jar:lib/annotations-13.0.jar:lib/gson-2.8.8.jar:lib/kotlin-stdlib-1.4.10.jar:lib/kotlin-stdlib-common-1.4.0.jar:lib/log4j-api-2.14.1.jar:lib/log4j-core-2.14.1.jar:lib/machineagent-21.9.jar:lib/okhttp-4.9.0.jar:lib/okio-2.8.0.jar</classpath>
