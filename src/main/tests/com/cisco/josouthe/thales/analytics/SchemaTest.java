@@ -4,6 +4,10 @@ import junit.framework.TestCase;
 
 public class SchemaTest extends TestCase {
 
+    public void gsonParserCreation() throws Exception {
+
+    }
+
     public void testAddField() {
         Schema schema = new Schema("testSchema" );
         try {
