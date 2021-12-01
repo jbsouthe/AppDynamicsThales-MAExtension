@@ -1,4 +1,4 @@
-package com.cisco.josouthe.thales.data;
+package com.cisco.josouthe.thales.api.data;
 
 public class ClusterNodeHealth {
     public String nodeID, host, publicAddress, nodeName;

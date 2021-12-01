@@ -1,4 +1,4 @@
-package com.cisco.josouthe.thales.data;
+package com.cisco.josouthe.thales.api.data;
 
 import java.util.List;
 

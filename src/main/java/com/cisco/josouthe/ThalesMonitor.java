@@ -1,10 +1,7 @@
 package com.cisco.josouthe;
 
-import com.cisco.josouthe.thales.APICalls;
-import com.cisco.josouthe.thales.data.ClientCertificateInfo;
-import com.cisco.josouthe.thales.data.ListAlarms;
-import com.cisco.josouthe.thales.data.ListClientCerts;
-import com.cisco.josouthe.thales.data.ListTokens;
+import com.cisco.josouthe.thales.api.APICalls;
+import com.cisco.josouthe.thales.api.data.*;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
@@ -81,6 +78,7 @@ public class ThalesMonitor extends AManagedMonitor {
 
     public void printMetric(String metricName, Object metricValue, String aggregation, String timeRollup, String cluster)
     {
+        logger.info("Print Metric: '%s%s'=%d",this.metricPrefix, metricName, metricValue);
         MetricWriter metricWriter = getMetricWriter(this.metricPrefix + metricName,
                 aggregation,
                 timeRollup,

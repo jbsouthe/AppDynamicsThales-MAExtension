@@ -1,11 +1,9 @@
-package com.cisco.josouthe.thales.data;
+package com.cisco.josouthe.thales.api.data;
 
 import com.cisco.josouthe.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class AuthToken {

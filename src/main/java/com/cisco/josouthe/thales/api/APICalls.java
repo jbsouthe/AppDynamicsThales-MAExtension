@@ -1,6 +1,6 @@
-package com.cisco.josouthe.thales;
+package com.cisco.josouthe.thales.api;
 
-import com.cisco.josouthe.thales.data.*;
+import com.cisco.josouthe.thales.api.data.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import okhttp3.*;

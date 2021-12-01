@@ -1,8 +1,7 @@
-package com.cisco.josouthe.thales.data;
+package com.cisco.josouthe.thales.api.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.junit.Test;
 
 import java.util.Map;
 
