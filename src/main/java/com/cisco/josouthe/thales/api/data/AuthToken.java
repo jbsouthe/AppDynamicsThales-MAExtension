@@ -1,6 +1,5 @@
 package com.cisco.josouthe.thales.api.data;
 
-import com.cisco.josouthe.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,7 +12,7 @@ public class AuthToken {
     public long duration, createdTime;
 
     public AuthToken() {
-        this.createdTime = Utility.now();
+        this.createdTime = new Date().getTime();
     }
 
     public boolean isExpired() {
