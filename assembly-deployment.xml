@@ -28,6 +28,8 @@
                 <include>ok*.jar</include>
                 <include>kotlin*.jar</include>
                 <include>annotations*.jar</include>
+                <include>hamcrest*.jar</include>
+                <include>snmp*.jar</include>
             </includes>
         </fileSet>
     </fileSets>

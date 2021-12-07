@@ -8,6 +8,7 @@ import com.cisco.josouthe.thales.api.data.ClientCertificateInfo;
 import com.cisco.josouthe.thales.api.data.ListAlarms;
 import com.cisco.josouthe.thales.api.data.ListClientCerts;
 import com.cisco.josouthe.thales.api.data.ListTokens;
+import com.cisco.josouthe.thales.snmp.SNMPAPI;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
@@ -26,13 +27,26 @@ public class ThalesMonitor extends AManagedMonitor {
     private String metricPrefix = "Custom Metrics|Thales Monitor|";
     private APICalls thalesAPIClient;
     private Analytics analyticsAPIClient;
+    private SNMPAPI snmpApiClient;
 
     @Override
     public TaskOutput execute(Map<String, String> configMap, TaskExecutionContext taskExecutionContext) throws TaskExecutionException {
         this.thalesAPIClient = new APICalls( configMap.get("thalesURL"), configMap.get("apiUser"), configMap.get("apiPassword") );
         this.analyticsAPIClient = new Analytics( configMap.get("analytics_URL"), configMap.get("analytics_apiAccountName"), configMap.get("analytics_apiKey"));
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
-
+        if(configMap.containsKey("snmp_targetAddress") ) {
+            try {
+                this.snmpApiClient = new SNMPAPI(configMap.get("snmp_targetAddress"),
+                        configMap.get("snmp_version"),
+                        configMap.get("snmp_contextName"),
+                        configMap.get("snmp_securityName"),
+                        configMap.get("snmp_authPassphrase"),
+                        configMap.get("snmp_privPassphrase")
+                );
+            } catch (IOException ioException) {
+                logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());
+            }
+        }
         printMetric("up", 1,
                 MetricWriter.METRIC_AGGREGATION_TYPE_OBSERVATION,
                 MetricWriter.METRIC_TIME_ROLLUP_TYPE_SUM,
@@ -56,7 +70,7 @@ public class ThalesMonitor extends AManagedMonitor {
                 }
             }
             Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
-            if( !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
+            if( checkSchema == null || !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
             analyticsAPIClient.insertSchema(schema, data);
         } catch (IOException e) {
             logger.warn("Error fetching Client Certificate Data, Exception: %s",e.getMessage());
@@ -80,6 +94,14 @@ public class ThalesMonitor extends AManagedMonitor {
                 printMetricCurrent("Tokens "+ state, tokensMap.get(state) );
         } catch (IOException ioException) {
             logger.warn("Error fetching Token Data, Exception: %s", ioException.getMessage());
+        }
+
+        if( snmpApiClient != null ) {
+            Map<String,String> snmpData = snmpApiClient.getAllData();
+            for( String key : snmpData.keySet()) {
+                printMetricCurrent(key, snmpData.get(key));
+            }
+            snmpApiClient.close();
         }
         return new TaskOutput("Thales Monitor Metric Upload Complete");
     }

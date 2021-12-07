@@ -50,6 +50,12 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.snmp4j/snmp4j -->
+        <dependency>
+            <groupId>org.snmp4j</groupId>
+            <artifactId>snmp4j-agent</artifactId>
+            <version>3.5.3</version>
+        </dependency>
 
 
     </dependencies>
