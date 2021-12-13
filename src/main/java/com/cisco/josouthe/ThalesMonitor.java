@@ -4,10 +4,7 @@ import com.cisco.josouthe.thales.analytics.Analytics;
 import com.cisco.josouthe.thales.analytics.AnalyticsSchemaException;
 import com.cisco.josouthe.thales.analytics.Schema;
 import com.cisco.josouthe.thales.api.APICalls;
-import com.cisco.josouthe.thales.api.data.ClientCertificateInfo;
-import com.cisco.josouthe.thales.api.data.ListAlarms;
-import com.cisco.josouthe.thales.api.data.ListClientCerts;
-import com.cisco.josouthe.thales.api.data.ListTokens;
+import com.cisco.josouthe.thales.api.data.*;
 import com.cisco.josouthe.thales.snmp.SNMPAPI;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
@@ -83,8 +80,19 @@ public class ThalesMonitor extends AManagedMonitor {
             Map<String,Integer> alarmsMap = listAlarms.getActiveAlarmCountsBySeverity();
             for( String severity : alarmsMap.keySet() )
                 printMetricCurrent("Alarms Active Severity "+ severity, alarmsMap.get(severity) );
+            ArrayList<Map<String,String>> data = new ArrayList<>();
+            Schema schema = null;
+            for(Alarm alarm : listAlarms.resources ) {
+                if( schema == null ) alarm.getSchemaDefinition();
+                data.add(alarm.getSchemaData());
+            }
+            Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
+            if( checkSchema == null || !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
+            analyticsAPIClient.insertSchema(schema, data);
         } catch (IOException ioException) {
             logger.warn("Error fetching Alarm Data, Exception: %s", ioException.getMessage());
+        } catch (AnalyticsSchemaException e) {
+            logger.warn("Analytics Schema could not be determined for Alarms, Message: %s", e.getMessage());
         }
 
         try {
