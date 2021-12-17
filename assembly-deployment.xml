@@ -13,7 +13,7 @@
                 <include>ThalesMonitorExtension.jar</include>
                 <include>README*</include>
                 <include>log4j2.xml</include>
-                <include>monitor.xml</include>
+                <include>monitor-EXAMPLE.xml</include>
             </includes>
             <lineEnding>unix</lineEnding>
             <fileMode>0644</fileMode>
