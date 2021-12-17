@@ -31,14 +31,17 @@ public class ThalesMonitor extends AManagedMonitor {
         this.thalesAPIClient = new APICalls( configMap.get("thalesURL"), configMap.get("apiUser"), configMap.get("apiPassword") );
         this.analyticsAPIClient = new Analytics( configMap.get("analytics_URL"), configMap.get("analytics_apiAccountName"), configMap.get("analytics_apiKey"));
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
-        if(configMap.containsKey("snmp_targetAddress") ) {
+        if( configMap.containsKey("snmp_targetAddress") && !"unconfigured".equals(configMap.getOrDefault("snmp_targetAddress", "unconfigured"))) {
             try {
                 this.snmpApiClient = new SNMPAPI(configMap.get("snmp_targetAddress"),
-                        configMap.get("snmp_version"),
+                        configMap.getOrDefault("snmp_version", "2"),
+                        configMap.getOrDefault("snmp_communityName", "public"),
                         configMap.get("snmp_contextName"),
                         configMap.get("snmp_securityName"),
                         configMap.get("snmp_authPassphrase"),
-                        configMap.get("snmp_privPassphrase")
+                        configMap.get("snmp_privPassphrase"),
+                        configMap.get("snmp_authProtocol"),
+                        configMap.get("snmp_privProtocol")
                 );
             } catch (IOException ioException) {
                 logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());
@@ -83,7 +86,7 @@ public class ThalesMonitor extends AManagedMonitor {
             ArrayList<Map<String,String>> data = new ArrayList<>();
             Schema schema = null;
             for(Alarm alarm : listAlarms.resources ) {
-                if( schema == null ) alarm.getSchemaDefinition();
+                if( schema == null ) schema = alarm.getSchemaDefinition();
                 data.add(alarm.getSchemaData());
             }
             Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
