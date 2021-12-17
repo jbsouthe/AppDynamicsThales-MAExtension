@@ -10,8 +10,10 @@
             <directory>.</directory>
             <outputDirectory>ThalesMonitor</outputDirectory>
             <includes>
-                <include>ThalesMonitorExtension.jar</include>
-                <include>README*</include>
+                <include>README.md</include>
+                <include>Changelog.md</include>
+                <include>LICENSE</include>
+                <include>NOTICE.txt</include>
                 <include>log4j2.xml</include>
                 <include>monitor-EXAMPLE.xml</include>
             </includes>
@@ -33,4 +35,11 @@
             </includes>
         </fileSet>
     </fileSets>
+    <files>
+        <file>
+            <source>ThalesMonitorExtension-${pom.version}.jar</source>
+            <outputDirectory>ThalesMonitor</outputDirectory>
+            <destName>ThalesMonitorExtension.jar</destName>
+        </file>
+    </files>
 </assembly>

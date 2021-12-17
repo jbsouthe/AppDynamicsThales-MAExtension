@@ -85,17 +85,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
-                <configuration>
-                    <includes>
-                        <include>**/*.class</include>
-                    </includes>
-                    <outputDirectory>${basedir}</outputDirectory>
-                </configuration>
-            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -163,6 +153,7 @@
                     <outputDirectory>${basedir}</outputDirectory>
                 </configuration>
             </plugin>
+            <!--
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
@@ -181,12 +172,13 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptor>assembly-deployment.xml</descriptor>
-                    <finalName>appdynamics-thalesMonitor-extension-${pom.version}</finalName>
+                    <finalName>appdynamics-ThalesMonitorExtension-${pom.version}</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -200,15 +192,4 @@
         </plugins>
     </build>
 
-    <!-- TODO if we can figure out how to list classes in a directory
-    <archive>
-        <manifestSections>
-          <manifestSection>
-              <name>Plugin-Classes</name>
-              <manifestEntries>
-              </manifestEntries>
-          </manifestSection>
-        </manifestSections>
-    </archive>
-    -->
 </project>
