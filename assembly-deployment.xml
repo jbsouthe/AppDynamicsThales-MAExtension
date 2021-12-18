@@ -21,7 +21,7 @@
             <fileMode>0644</fileMode>
         </fileSet>
         <fileSet>
-            <directory>lib</directory>
+            <directory>target/lib</directory>
             <outputDirectory>ThalesMonitor/lib</outputDirectory>
             <includes>
                 <include>commons-*.jar</include>
