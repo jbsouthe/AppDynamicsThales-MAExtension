@@ -27,9 +27,10 @@
             <argument name="snmp_authProtocol" is-required="false" default-value="hmac384sha512" /> <!-- only used by snmp v3 https://agentpp.com/doc/snmp4j/org/snmp4j/fluent/TargetBuilder.AuthProtocol.html -->
             <argument name="snmp_privPassphrase" is-required="false" default-value="" /> <!-- only used by snmp v3 -->
             <argument name="snmp_privProtocol" is-required="false" default-value="aes256" /> <!-- only used by snmp v3 https://agentpp.com/doc/snmp4j/org/snmp4j/fluent/TargetBuilder.PrivProtocol.html -->
+            <argument name="snmp_oidFile" is-required="false" default-value="snmp-oids.json" /> <!-- defaults to ./snmp-oids.json, if file not found, a hardcoded set is used -->
         </task-arguments>
         <java-task>
-            <classpath>ThalesMonitorExtension.jar:lib/annotations-13.0.jar:lib/gson-2.8.9.jar:lib/kotlin-stdlib-1.4.10.jar:lib/kotlin-stdlib-common-1.4.0.jar:lib/log4j-api-2.17.0.jar:lib/log4j-core-2.17.0.jar:lib/okhttp-4.9.3.jar:lib/okio-2.8.0.jar</classpath>
+            <classpath>ThalesMonitorExtension.jar:lib/annotations-13.0.jar:lib/gson-2.8.9.jar:lib/kotlin-stdlib-1.4.10.jar:lib/kotlin-stdlib-common-1.4.0.jar:lib/log4j-api-2.17.0.jar:lib/log4j-core-2.17.0.jar:lib/okhttp-4.9.3.jar:lib/okio-2.8.0.jar:lib/snmp4j-3.6.3.jar:lib/snmp4j-agent-3.6.3.jar</classpath>
             <impl-class>com.cisco.josouthe.ThalesMonitor</impl-class>
         </java-task>
     </monitor-run-task>

@@ -41,7 +41,8 @@ public class ThalesMonitor extends AManagedMonitor {
                         configMap.get("snmp_authPassphrase"),
                         configMap.get("snmp_privPassphrase"),
                         configMap.get("snmp_authProtocol"),
-                        configMap.get("snmp_privProtocol")
+                        configMap.get("snmp_privProtocol"),
+                        configMap.getOrDefault("snmp_oidFile", "./snmp-oids.json")
                 );
             } catch (IOException ioException) {
                 logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());

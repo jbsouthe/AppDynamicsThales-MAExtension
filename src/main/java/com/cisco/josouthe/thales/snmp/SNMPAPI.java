@@ -1,10 +1,15 @@
 package com.cisco.josouthe.thales.snmp;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.TransportMapping;
+import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.fluent.SnmpBuilder;
 import org.snmp4j.fluent.SnmpCompletableFuture;
 import org.snmp4j.fluent.TargetBuilder;
@@ -14,6 +19,9 @@ import org.snmp4j.smi.GenericAddress;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.VariableBinding;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class SNMPAPI {
+    private static final Logger logger = LogManager.getFormatterLogger();
     private TransportMapping transportMapping;
     private Snmp snmp;
     private TargetBuilder<?> targetBuilder;
@@ -30,9 +39,12 @@ public class SNMPAPI {
     private String contextName;
     private String communityName;
     private Map<String,String> oidMap;
+    private int timeout=5000;
+    private int retries=3;
 
     public SNMPAPI( String hostAddressString, String version, String communityName, String contextName, String securityName,
-                    String authPassphrase, String privPassphrase, String authProtocol, String privProtocol) throws TaskExecutionException, IOException {
+                    String authPassphrase, String privPassphrase, String authProtocol, String privProtocol, String oidFile
+    ) throws TaskExecutionException, IOException {
         this.contextName=contextName;
         this.communityName=communityName;
         address = GenericAddress.parse(hostAddressString);
@@ -48,7 +60,7 @@ public class SNMPAPI {
                 target = targetBuilder
                         .v2c()
                         .community(new OctetString(communityName))
-                        .timeout(1000).retries(3)
+                        .timeout(timeout).retries(retries)
                         .build();
                 break;
             }
@@ -66,7 +78,7 @@ public class SNMPAPI {
                     throw new TaskExecutionException(sb.toString());
                 }
                 snmp = snmpBuilder.v3().usm().build();
-                byte[] targetEngineID = snmp.discoverAuthoritativeEngineID(address, 1000);
+                byte[] targetEngineID = snmp.discoverAuthoritativeEngineID(address, timeout);
                 if( targetEngineID == null ) throw new TaskExecutionException("Could not discover the SNMP Authoritative Engine");
                 targetBuilder = snmpBuilder.target(address);
                 target = targetBuilder
@@ -75,21 +87,39 @@ public class SNMPAPI {
                         .auth(getAuthProtocol(authProtocol)).authPassphrase(authPassphrase)
                         .priv(getPrivProtocol(privProtocol)).privPassphrase(privPassphrase)
                         .done()
-                        .timeout(1000).retries(3)
+                        .timeout(timeout).retries(retries)
                         .build();
                 break;
                 }
             default: throw new TaskExecutionException("Unknown SNMP Version? "+ version);
         }
         snmp.listen();
-        this.oidMap = new HashMap<>();
-        this.oidMap.put(".1.3.6.1.4.1.2021.10.1.3.1", "1 minute load average");
-        this.oidMap.put(".1.3.6.1.4.1.2021.10.1.3.2", "5 minute load average");
-        this.oidMap.put(".1.3.6.1.4.1.2021.10.1.3.3", "15 minute load average");
-        this.oidMap.put(".1.3.6.1.4.1.2021.11.11.0", "CPU Idle %");
-        this.oidMap.put(".1.3.6.1.4.1.2021.11.9.0", "CPU User %");
-        this.oidMap.put(".1.3.6.1.4.1.2021.4.4.0", "Swap Available");
-        this.oidMap.put(".1.3.6.1.4.1.2021.4.3.0", "Swap Total");
+        this.oidMap = loadExternalSNMPOidList(oidFile);
+    }
+
+    private Map<String, String> loadExternalSNMPOidList(String oidFile) {
+        try {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            File snmpoidsFile = new File(oidFile);
+            BufferedReader reader = new BufferedReader(new FileReader(snmpoidsFile));
+            StringBuilder jsonFileContent = new StringBuilder();
+            while (reader.ready()) {
+                jsonFileContent.append(reader.readLine());
+            }
+            Map<String,String> map = gson.fromJson(jsonFileContent.toString(), new HashMap<String, String>().getClass());
+            if( map != null ) return map;
+        } catch (IOException exception) {
+            logger.warn("Exception while reading the external file %s, message: %s", oidFile, exception);
+        }
+        Map<String,String> map = new HashMap<>();
+        map.put("1.3.6.1.4.1.2021.10.1.3.1", "1 minute load average");
+        map.put("1.3.6.1.4.1.2021.10.1.3.2", "5 minute load average");
+        map.put("1.3.6.1.4.1.2021.10.1.3.3", "15 minute load average");
+        map.put("1.3.6.1.4.1.2021.11.11.0", "CPU Idle %");
+        map.put("1.3.6.1.4.1.2021.11.9.0", "CPU User %");
+        map.put("1.3.6.1.4.1.2021.4.4.0", "Swap Available");
+        map.put("1.3.6.1.4.1.2021.4.3.0", "Swap Total");
+        return map;
     }
 
     private TargetBuilder.AuthProtocol getAuthProtocol( String name ) throws TaskExecutionException {
@@ -130,6 +160,11 @@ public class SNMPAPI {
         }
         SnmpCompletableFuture snmpRequestFuture = SnmpCompletableFuture.send(snmp, target, pdu);
         try {
+            ResponseEvent responseEvent = snmpRequestFuture.getResponseEvent();
+            if( responseEvent != null && responseEvent.getError() != null ) {
+                logger.warn("Response returned error: %s",responseEvent.getError().toString());
+                throw new TaskExecutionException(responseEvent.getError());
+            }
             List<VariableBinding> vbs = snmpRequestFuture.get().getAll();
             return vbs;
         } catch (ExecutionException | InterruptedException ex) {
