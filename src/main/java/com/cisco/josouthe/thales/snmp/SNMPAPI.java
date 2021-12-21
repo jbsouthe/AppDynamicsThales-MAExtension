@@ -34,7 +34,6 @@ public class SNMPAPI {
     private TransportMapping transportMapping;
     private Snmp snmp;
     private TargetBuilder<?> targetBuilder;
-    private Target<?> target;
     private Address address;
     private String contextName;
     private String communityName;
@@ -46,10 +45,10 @@ public class SNMPAPI {
         this.communityName=configMap.getOrDefault("snmp_communityName", "public");
         this.contextName=configMap.getOrDefault("snmp_contextName", "");
         String securityName=configMap.get("snmp_securityName");
-        String authPassphrase=configMap.get("snmp_authPassphrase");
-        String privPassphrase=configMap.get("snmp_privPassphrase");
-        String authProtocol=configMap.get("snmp_authProtocol");
-        String privProtocol=configMap.get("snmp_privProtocol");
+        String authPassphrase=configMap.getOrDefault("snmp_authPassphrase", "_unset");
+        String privPassphrase=configMap.getOrDefault("snmp_privPassphrase", "_unset");
+        String authProtocol=configMap.getOrDefault("snmp_authProtocol", "hmac384sha512");
+        String privProtocol=configMap.getOrDefault("snmp_privProtocol", "aes256");
         String oidFile=configMap.getOrDefault("snmp_oidFile", "./snmp-oids.json");
         if( taskWorkingDir!=null && !oidFile.startsWith("/") ) oidFile = taskWorkingDir +"/"+ oidFile;
         address = GenericAddress.parse(configMap.get("snmp_targetAddress"));
@@ -62,21 +61,18 @@ public class SNMPAPI {
             case '2':{
                 if( "".equals(communityName) ) throw new TaskExecutionException("SNMP v2 being used but Community Name Parameter is null?");
                 snmp = snmpBuilder.v2c().build();
-                targetBuilder = snmpBuilder.target(address);
-                target = targetBuilder
-                        .v2c()
+                targetBuilder = snmpBuilder.target(address).v2c()
                         .community(new OctetString(communityName))
-                        .timeout(timeout).retries(retries)
-                        .build();
+                        .timeout(timeout).retries(retries);
                 break;
             }
             case '3': {
                 List<String> errorParameters = new ArrayList<>();
                 if( "".equals(securityName) ) errorParameters.add("Security Name");
-                if( "".equals(authPassphrase)) errorParameters.add("Auth Passphrase");
-                if( "".equals(authProtocol)) errorParameters.add("Auth Protocol");
-                if( "".equals(privPassphrase)) errorParameters.add("Private Passphrase");
-                if( "".equals(privProtocol)) errorParameters.add("Private Protocol");
+                //if( "".equals(authPassphrase)) errorParameters.add("Auth Passphrase");
+                //if( "".equals(authProtocol)) errorParameters.add("Auth Protocol");
+                //if( "".equals(privPassphrase)) errorParameters.add("Private Passphrase");
+                //if( "".equals(privProtocol)) errorParameters.add("Private Protocol");
                 if( errorParameters.size() > 0 ) {
                     StringBuilder sb = new StringBuilder("SNMP v3 being used but missing needed parameter(s): ");
                     for( String param : errorParameters ) sb.append(param+",");
@@ -86,15 +82,13 @@ public class SNMPAPI {
                 snmp = snmpBuilder.v3().usm().build();
                 byte[] targetEngineID = snmp.discoverAuthoritativeEngineID(address, timeout);
                 if( targetEngineID == null ) throw new TaskExecutionException("Could not discover the SNMP Authoritative Engine");
-                targetBuilder = snmpBuilder.target(address);
-                target = targetBuilder
-                        .v3()
-                        .user(securityName, targetEngineID)
-                        .auth(getAuthProtocol(authProtocol)).authPassphrase(authPassphrase)
-                        .priv(getPrivProtocol(privProtocol)).privPassphrase(privPassphrase)
-                        .done()
-                        .timeout(timeout).retries(retries)
-                        .build();
+                targetBuilder = snmpBuilder.target(address).v3();
+                TargetBuilder<?>.DirectUserBuilder directUserBuilder = targetBuilder.user(securityName, targetEngineID);
+                if( !"_unset".equals(authPassphrase) )
+                    directUserBuilder = directUserBuilder.auth(getAuthProtocol(authProtocol)).authPassphrase(authPassphrase);
+                if( !"_unset".equals(privPassphrase) )
+                    directUserBuilder = directUserBuilder.priv(getPrivProtocol(privProtocol)).privPassphrase(privPassphrase);
+                targetBuilder = directUserBuilder.done().timeout(timeout).retries(retries);
                 break;
                 }
             default: throw new TaskExecutionException("Unknown SNMP Version? "+ version);
@@ -155,6 +149,7 @@ public class SNMPAPI {
     public List<VariableBinding> getOIDs( String ... oids) throws TaskExecutionException {
         logger.debug("getOIDs beginning: %s",oids);
         PDU pdu = null;
+        Target<?> target = this.targetBuilder.build();
         switch (target.getVersion()) {
             case SnmpConstants.version2c: {
                 pdu = targetBuilder.pdu().type(PDU.GETNEXT).oids(oids).build();
