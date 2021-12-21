@@ -25,15 +25,13 @@
             <directory>target/lib</directory>
             <outputDirectory>ThalesMonitor/lib</outputDirectory>
             <includes>
-                <include>commons-*.jar</include>
-                <include>gson-*.jar</include>
-                <include>log4j*.jar</include>
-                <include>ok*.jar</include>
-                <include>kotlin*.jar</include>
-                <include>annotations*.jar</include>
-                <include>hamcrest*.jar</include>
-                <include>snmp*.jar</include>
+                <include>*.jar</include>
             </includes>
+            <excludes>
+                <exclude>machineagent-*.jar</exclude>
+                <exclude>junit-*.jar</exclude>
+                <exclude>hamcrest-*.jar</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
     <files>
