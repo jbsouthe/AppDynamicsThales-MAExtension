@@ -42,12 +42,18 @@ public class SNMPAPI {
     private int timeout=5000;
     private int retries=3;
 
-    public SNMPAPI( String hostAddressString, String version, String communityName, String contextName, String securityName,
-                    String authPassphrase, String privPassphrase, String authProtocol, String privProtocol, String oidFile
-    ) throws TaskExecutionException, IOException {
-        this.contextName=contextName;
-        this.communityName=communityName;
-        address = GenericAddress.parse(hostAddressString);
+    public SNMPAPI( Map<String,String> configMap, String taskWorkingDir) throws TaskExecutionException, IOException {
+        this.communityName=configMap.getOrDefault("snmp_communityName", "public");
+        this.contextName=configMap.getOrDefault("snmp_contextName", "");
+        String securityName=configMap.get("snmp_securityName");
+        String authPassphrase=configMap.get("snmp_authPassphrase");
+        String privPassphrase=configMap.get("snmp_privPassphrase");
+        String authProtocol=configMap.get("snmp_authProtocol");
+        String privProtocol=configMap.get("snmp_privProtocol");
+        String oidFile=configMap.getOrDefault("snmp_oidFile", "./snmp-oids.json");
+        if( taskWorkingDir!=null && !oidFile.startsWith("/") ) oidFile = taskWorkingDir +"/"+ oidFile;
+        address = GenericAddress.parse(configMap.get("snmp_targetAddress"));
+        String version = configMap.getOrDefault("snmp_version", "2");
         SnmpBuilder snmpBuilder = new SnmpBuilder().udp().threads(2);
         switch(version.charAt(0)) {
             case '1':{
@@ -147,6 +153,7 @@ public class SNMPAPI {
     }
 
     public List<VariableBinding> getOIDs( String ... oids) throws TaskExecutionException {
+        logger.debug("getOIDs beginning: %s",oids);
         PDU pdu = null;
         switch (target.getVersion()) {
             case SnmpConstants.version2c: {
@@ -157,15 +164,21 @@ public class SNMPAPI {
                 pdu = targetBuilder.pdu().type(PDU.GETNEXT).oids(oids).contextName(contextName).build();
                 break;
             }
+            default: {
+                throw new TaskExecutionException(String.format("SNMP version not yet implemented: %s",target.getVersion()));
+            }
         }
         SnmpCompletableFuture snmpRequestFuture = SnmpCompletableFuture.send(snmp, target, pdu);
+        logger.debug("SnmpCompletableFuture created: %s",snmpRequestFuture.toString());
         try {
             ResponseEvent responseEvent = snmpRequestFuture.getResponseEvent();
+            logger.debug("ResponseEvent received: %s",responseEvent.toString());
             if( responseEvent != null && responseEvent.getError() != null ) {
                 logger.warn("Response returned error: %s",responseEvent.getError().toString());
                 throw new TaskExecutionException(responseEvent.getError());
             }
             List<VariableBinding> vbs = snmpRequestFuture.get().getAll();
+            logger.debug("List<VariableBinding> returned with size: %d",vbs.size());
             return vbs;
         } catch (ExecutionException | InterruptedException ex) {
             if (ex.getCause() != null) {

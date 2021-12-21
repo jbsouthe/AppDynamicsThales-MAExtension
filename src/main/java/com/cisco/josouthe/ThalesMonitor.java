@@ -33,17 +33,7 @@ public class ThalesMonitor extends AManagedMonitor {
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
         if( configMap.containsKey("snmp_targetAddress") && !"unconfigured".equals(configMap.getOrDefault("snmp_targetAddress", "unconfigured"))) {
             try {
-                this.snmpApiClient = new SNMPAPI(configMap.get("snmp_targetAddress"),
-                        configMap.getOrDefault("snmp_version", "2"),
-                        configMap.getOrDefault("snmp_communityName", "public"),
-                        configMap.get("snmp_contextName"),
-                        configMap.get("snmp_securityName"),
-                        configMap.get("snmp_authPassphrase"),
-                        configMap.get("snmp_privPassphrase"),
-                        configMap.get("snmp_authProtocol"),
-                        configMap.get("snmp_privProtocol"),
-                        configMap.getOrDefault("snmp_oidFile", "./snmp-oids.json")
-                );
+                this.snmpApiClient = new SNMPAPI(configMap, taskExecutionContext.getTaskDir());
             } catch (IOException ioException) {
                 logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());
             }

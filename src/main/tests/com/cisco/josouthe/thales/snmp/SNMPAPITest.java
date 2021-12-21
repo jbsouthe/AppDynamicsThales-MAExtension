@@ -12,8 +12,18 @@ public class SNMPAPITest extends TestCase {
 
     public void testSNMPv1Creation() {
         try {
-            SNMPAPI snmpapi = new SNMPAPI("udp:localhost/162", "1", null,
-                    null, null, null, null, null, null, null);
+            Map<String,String> configMap = new HashMap<>();
+            configMap.put("snmp_targetAddress","udp:localhost/162");
+            configMap.put("snmp_version", "1");
+            configMap.put("snmp_communityName", "public");
+            configMap.put("snmp_contextName", "");
+            configMap.put("snmp_securityName","admin");
+            configMap.put("snmp_authPassphrase","password");
+            configMap.put("snmp_privPassphrase","password");
+            configMap.put("snmp_authProtocol","hmac384sha512");
+            configMap.put("snmp_privProtocol", "aes256");
+            configMap.put("snmp_oidFile", "./snmp-oids.json");
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             assert false;
         } catch (Exception e) {
             assert true;
@@ -23,8 +33,12 @@ public class SNMPAPITest extends TestCase {
 
     public void testSNMPv2Creation() {
         try {
-            SNMPAPI snmpapi = new SNMPAPI("udp:localhost/162", "2", "public",
-                    null, null, null, null, null, null, null);
+            Map<String,String> configMap = new HashMap<>();
+            configMap.put("snmp_targetAddress","udp:localhost/162");
+            configMap.put("snmp_version", "2");
+            configMap.put("snmp_communityName", "public");
+            configMap.put("snmp_oidFile", "./snmp-oids.json");
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             assert true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -35,9 +49,18 @@ public class SNMPAPITest extends TestCase {
 
     public void testSNMPv3Creation() {
         try {
-            SNMPAPI snmpapi = new SNMPAPI("udp:localhost/162", "3", null,
-                    null, "user_name", "authpass", "privpass",
-                    "hmac384sha512", "aes256", null);
+            Map<String,String> configMap = new HashMap<>();
+            configMap.put("snmp_targetAddress","udp:localhost/162");
+            configMap.put("snmp_version", "3");
+            configMap.put("snmp_communityName", "");
+            configMap.put("snmp_contextName", "");
+            configMap.put("snmp_securityName","admin");
+            configMap.put("snmp_authPassphrase","password");
+            configMap.put("snmp_privPassphrase","password");
+            configMap.put("snmp_authProtocol","hmac384sha512");
+            configMap.put("snmp_privProtocol", "aes256");
+            configMap.put("snmp_oidFile", "./snmp-oids.json");
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             assert true;
         } catch (Exception e) {
             if( e.getMessage().equals("Could not discover the SNMP Authoritative Engine") ) {
