@@ -5,32 +5,21 @@ import com.google.gson.GsonBuilder;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.snmp4j.PDU;
-import org.snmp4j.Snmp;
-import org.snmp4j.Target;
-import org.snmp4j.TransportMapping;
-import org.snmp4j.event.ResponseEvent;
+import org.snmp4j.*;
 import org.snmp4j.fluent.SnmpBuilder;
 import org.snmp4j.fluent.SnmpCompletableFuture;
 import org.snmp4j.fluent.TargetBuilder;
 import org.snmp4j.mp.SnmpConstants;
-import org.snmp4j.smi.Address;
-import org.snmp4j.smi.GenericAddress;
-import org.snmp4j.smi.OctetString;
-import org.snmp4j.smi.VariableBinding;
+import org.snmp4j.smi.*;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.*;
 
 public class SNMPAPI {
-    private static final Logger logger = LogManager.getFormatterLogger();
+    private Logger logger = LogManager.getFormatterLogger();
     private TransportMapping transportMapping;
     private Snmp snmp;
     private TargetBuilder<?> targetBuilder;
@@ -40,8 +29,11 @@ public class SNMPAPI {
     private Map<String,String> oidMap;
     private int timeout=5000;
     private int retries=3;
+    private int snmpVersion;
 
-    public SNMPAPI( Map<String,String> configMap, String taskWorkingDir) throws TaskExecutionException, IOException {
+    public SNMPAPI( Map<String,String> configMap, String taskWorkingDir, Logger parentLogger) throws TaskExecutionException, IOException {
+        if( parentLogger != null ) this.logger=parentLogger;
+        //logger.debug("Is noGetBulk set? %s", SNMP4JSettings.isNoGetBulk());
         this.communityName=configMap.getOrDefault("snmp_communityName", "public");
         this.contextName=configMap.getOrDefault("snmp_contextName", "");
         String securityName=configMap.get("snmp_securityName");
@@ -56,23 +48,22 @@ public class SNMPAPI {
         SnmpBuilder snmpBuilder = new SnmpBuilder().udp().threads(2);
         switch(version.charAt(0)) {
             case '1':{
+                this.snmpVersion = SnmpConstants.version1;
                 throw new TaskExecutionException("SNMP Version not yet implemented: "+ version);
                 }
             case '2':{
+                this.snmpVersion = SnmpConstants.version2c;
                 if( "".equals(communityName) ) throw new TaskExecutionException("SNMP v2 being used but Community Name Parameter is null?");
                 snmp = snmpBuilder.v2c().build();
-                targetBuilder = snmpBuilder.target(address).v2c()
+                targetBuilder = snmpBuilder.v2c().target(address)
                         .community(new OctetString(communityName))
                         .timeout(timeout).retries(retries);
                 break;
             }
             case '3': {
+                this.snmpVersion = SnmpConstants.version3;
                 List<String> errorParameters = new ArrayList<>();
                 if( "".equals(securityName) ) errorParameters.add("Security Name");
-                //if( "".equals(authPassphrase)) errorParameters.add("Auth Passphrase");
-                //if( "".equals(authProtocol)) errorParameters.add("Auth Protocol");
-                //if( "".equals(privPassphrase)) errorParameters.add("Private Passphrase");
-                //if( "".equals(privProtocol)) errorParameters.add("Private Protocol");
                 if( errorParameters.size() > 0 ) {
                     StringBuilder sb = new StringBuilder("SNMP v3 being used but missing needed parameter(s): ");
                     for( String param : errorParameters ) sb.append(param+",");
@@ -82,7 +73,7 @@ public class SNMPAPI {
                 snmp = snmpBuilder.v3().usm().build();
                 byte[] targetEngineID = snmp.discoverAuthoritativeEngineID(address, timeout);
                 if( targetEngineID == null ) throw new TaskExecutionException("Could not discover the SNMP Authoritative Engine");
-                targetBuilder = snmpBuilder.target(address).v3();
+                targetBuilder = snmpBuilder.v3().target(address);
                 TargetBuilder<?>.DirectUserBuilder directUserBuilder = targetBuilder.user(securityName, targetEngineID);
                 if( !"_unset".equals(authPassphrase) )
                     directUserBuilder = directUserBuilder.auth(getAuthProtocol(authProtocol)).authPassphrase(authPassphrase);
@@ -95,8 +86,22 @@ public class SNMPAPI {
         }
         snmp.listen();
         this.oidMap = loadExternalSNMPOidList(oidFile);
+        if(logger.isDebugEnabled()) {
+            Target<?> target = targetBuilder.build();
+            target.setVersion(this.snmpVersion);
+            logger.debug("snmp target(%s): %s", getVersionString(target.getVersion()), target.toString());
+        }
+        logger.info("Initialized SNMP API for version %s",version);
     }
 
+    private String getVersionString( int v ) {
+        switch (v) {
+            case SnmpConstants.version1: return "v1";
+            case SnmpConstants.version2c: return "v2c";
+            case SnmpConstants.version3: return "v3";
+            default: return "unknown-version";
+        }
+    }
     private Map<String, String> loadExternalSNMPOidList(String oidFile) {
         try {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -140,43 +145,58 @@ public class SNMPAPI {
 
     public Map<String,String> getAllData() throws TaskExecutionException {
         Map<String,String> data = new HashMap<>();
-        for( VariableBinding variableBinding : getOIDs(this.oidMap.keySet().toArray( new String[0])))  {
+        for( VariableBinding variableBinding : getOIDs(this.oidMap.keySet()))  {
             data.put( getOIDMetricName(variableBinding.getOid().toString()), variableBinding.toValueString());
         }
         return data;
     }
 
-    public List<VariableBinding> getOIDs( String ... oids) throws TaskExecutionException {
-        logger.debug("getOIDs beginning: %s",oids);
+    public List<VariableBinding> getOIDs( Set<String> oids) throws TaskExecutionException {
+        logger.debug("getOIDs beginning(%d): %s",oids.size(), oids);
         PDU pdu = null;
         Target<?> target = this.targetBuilder.build();
+        target.setVersion(this.snmpVersion);
+        logger.info("Target version %s for target: %s",target.getVersion(),target.toString());
         switch (target.getVersion()) {
+            case SnmpConstants.version1:
             case SnmpConstants.version2c: {
-                pdu = targetBuilder.pdu().type(PDU.GETNEXT).oids(oids).build();
+                pdu = targetBuilder
+                        .pdu()
+                        .type(PDU.GETNEXT)
+                        .build();
                 break;
             }
             case SnmpConstants.version3: {
-                pdu = targetBuilder.pdu().type(PDU.GETNEXT).oids(oids).contextName(contextName).build();
+                pdu = targetBuilder
+                        .pdu()
+                        .type(PDU.GETNEXT)
+                        .contextName(contextName)
+                        .build();
                 break;
             }
             default: {
                 throw new TaskExecutionException(String.format("SNMP version not yet implemented: %s",target.getVersion()));
             }
         }
+        for( String oidName : oids ) {
+            pdu.addOID( new VariableBinding( new OID(oidName)));
+        }
+        logger.debug("Request PDU: %s", pdu);
         SnmpCompletableFuture snmpRequestFuture = SnmpCompletableFuture.send(snmp, target, pdu);
         logger.debug("SnmpCompletableFuture created: %s",snmpRequestFuture.toString());
         try {
-            ResponseEvent responseEvent = snmpRequestFuture.getResponseEvent();
-            logger.debug("ResponseEvent received: %s",responseEvent.toString());
-            if( responseEvent != null && responseEvent.getError() != null ) {
-                logger.warn("Response returned error: %s",responseEvent.getError().toString());
-                throw new TaskExecutionException(responseEvent.getError());
+            PDU responsePDU = snmpRequestFuture.get();
+            logger.debug("ResponsePDU: %s SnmpCompletableFuture: %s",responsePDU, snmpRequestFuture);
+            if( responsePDU.getErrorStatus() != PDU.noError ) {
+                logger.warn("Response returned error: %s",responsePDU.getErrorStatusText());
+                throw new TaskExecutionException(responsePDU.getErrorStatusText());
             }
-            List<VariableBinding> vbs = snmpRequestFuture.get().getAll();
-            logger.debug("List<VariableBinding> returned with size: %d",vbs.size());
+            List<VariableBinding> vbs = responsePDU.getAll();
+            logger.debug("List<VariableBinding> returned with size: %d",(vbs==null?0:vbs.size()));
             return vbs;
-        } catch (ExecutionException | InterruptedException ex) {
+        } catch (Exception ex) {
             if (ex.getCause() != null) {
+                logger.warn("Error in processing: %s",ex.getCause().getMessage(),ex.getCause());
                 throw new TaskExecutionException(ex.getCause().getMessage());
             } else {
                 throw new TaskExecutionException(ex.getMessage());

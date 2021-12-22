@@ -3,12 +3,26 @@ package com.cisco.josouthe.thales.snmp;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import junit.framework.TestCase;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.junit.Before;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SNMPAPITest extends TestCase {
+    private static final Logger logger = LogManager.getFormatterLogger();
+
+    @Before
+    public void setUp() {
+        Configurator.setAllLevels("", Level.ALL);
+    }
 
     public void testSNMPv1Creation() {
         try {
@@ -23,7 +37,7 @@ public class SNMPAPITest extends TestCase {
             configMap.put("snmp_authProtocol","hmac384sha512");
             configMap.put("snmp_privProtocol", "aes256");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
             assert false;
         } catch (Exception e) {
             assert true;
@@ -35,10 +49,11 @@ public class SNMPAPITest extends TestCase {
         try {
             Map<String,String> configMap = new HashMap<>();
             configMap.put("snmp_targetAddress","udp:localhost/162");
-            configMap.put("snmp_version", "2");
+            configMap.put("snmp_version", "2c");
             configMap.put("snmp_communityName", "public");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
+            snmpapi.getAllData();
             assert true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -56,13 +71,15 @@ public class SNMPAPITest extends TestCase {
             configMap.put("snmp_contextName", "");
             configMap.put("snmp_securityName","admin");
             configMap.put("snmp_authPassphrase","password");
-            configMap.put("snmp_privPassphrase","password");
+            //configMap.put("snmp_privPassphrase","password");
             configMap.put("snmp_authProtocol","hmac384sha512");
-            configMap.put("snmp_privProtocol", "aes256");
+            //configMap.put("snmp_privProtocol", "aes256");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
+            snmpapi.getAllData();
             assert true;
         } catch (Exception e) {
+            logger.info("Exception: "+e);
             if( e.getMessage().equals("Could not discover the SNMP Authoritative Engine") ) {
                 assert true;
             } else {

@@ -31,9 +31,9 @@ public class ThalesMonitor extends AManagedMonitor {
         this.thalesAPIClient = new APICalls( configMap.get("thalesURL"), configMap.get("apiUser"), configMap.get("apiPassword") );
         this.analyticsAPIClient = new Analytics( configMap.get("analytics_URL"), configMap.get("analytics_apiAccountName"), configMap.get("analytics_apiKey"));
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
-        if( configMap.containsKey("snmp_targetAddress") && !"unconfigured".equals(configMap.getOrDefault("snmp_targetAddress", "unconfigured"))) {
+        if( snmpApiClient == null && configMap.containsKey("snmp_targetAddress") && !"unconfigured".equals(configMap.getOrDefault("snmp_targetAddress", "unconfigured"))) {
             try {
-                this.snmpApiClient = new SNMPAPI(configMap, taskExecutionContext.getTaskDir());
+                this.snmpApiClient = new SNMPAPI(configMap, taskExecutionContext.getTaskDir(), taskExecutionContext.getLogger());
             } catch (IOException ioException) {
                 logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());
             }
@@ -103,7 +103,7 @@ public class ThalesMonitor extends AManagedMonitor {
             for( String key : snmpData.keySet()) {
                 printMetricCurrent(key, snmpData.get(key));
             }
-            snmpApiClient.close();
+            //snmpApiClient.close();
         }
         return new TaskOutput("Thales Monitor Metric Upload Complete");
     }
