@@ -37,7 +37,7 @@ public class SNMPAPITest extends TestCase {
             configMap.put("snmp_authProtocol","hmac384sha512");
             configMap.put("snmp_privProtocol", "aes256");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             assert false;
         } catch (Exception e) {
             assert true;
@@ -52,7 +52,7 @@ public class SNMPAPITest extends TestCase {
             configMap.put("snmp_version", "2c");
             configMap.put("snmp_communityName", "public");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             snmpapi.getAllData();
             assert true;
         } catch (Exception e) {
@@ -75,7 +75,7 @@ public class SNMPAPITest extends TestCase {
             configMap.put("snmp_authProtocol","hmac384sha512");
             //configMap.put("snmp_privProtocol", "aes256");
             configMap.put("snmp_oidFile", "./snmp-oids.json");
-            SNMPAPI snmpapi = new SNMPAPI(configMap, null, logger);
+            SNMPAPI snmpapi = new SNMPAPI(configMap, null);
             snmpapi.getAllData();
             assert true;
         } catch (Exception e) {

@@ -12,22 +12,10 @@
         <type>java</type>
         <execution-timeout-in-secs>60</execution-timeout-in-secs>
         <task-arguments>
-            <argument name="thalesURL" is-required="true" default-value="" />
-            <argument name="apiUser" is-required="true" default-value="" />
-            <argument name="apiPassword" is-required="true" default-value="" />
+            <argument name="thalesConfigFile" is-required="true" default-value="Thales-Config-EXAMPLE.json" />
             <argument name="analytics_URL" is-required="true" default-value="https://analytics.api.appdynamics.com/" />
             <argument name="analytics_apiAccountName" is-required="true" default-value="" />
             <argument name="analytics_apiKey" is-required="true" default-value="" />
-            <argument name="snmp_targetAddress" is-required="false" default-value="" /> <!-- format is: udp:hostname/port -->
-            <argument name="snmp_version" is-required="false" default-value="2" /> <!-- only version 2 and 3 are supported -->
-            <argument name="snmp_communityName" is-required="false" default-value="public" /> <!-- only used by snmp v2 -->
-            <argument name="snmp_contextName" is-required="false" default-value="" /> <!-- only used by snmp v3 -->
-            <argument name="snmp_securityName" is-required="false" default-value="" /> <!-- only used by snmp v3 -->
-            <argument name="snmp_authPassphrase" is-required="false" default-value="" /> <!-- only used by snmp v3 -->
-            <argument name="snmp_authProtocol" is-required="false" default-value="hmac384sha512" /> <!-- only used by snmp v3 https://agentpp.com/doc/snmp4j/org/snmp4j/fluent/TargetBuilder.AuthProtocol.html -->
-            <argument name="snmp_privPassphrase" is-required="false" default-value="" /> <!-- only used by snmp v3 -->
-            <argument name="snmp_privProtocol" is-required="false" default-value="aes256" /> <!-- only used by snmp v3 https://agentpp.com/doc/snmp4j/org/snmp4j/fluent/TargetBuilder.PrivProtocol.html -->
-            <argument name="snmp_oidFile" is-required="false" default-value="snmp-oids.json" /> <!-- defaults to ./snmp-oids.json, if file not found, a hardcoded set is used -->
         </task-arguments>
         <java-task>
             <classpath>ThalesMonitorExtension.jar:lib/annotations-13.0.jar:lib/gson-2.8.9.jar:lib/kotlin-stdlib-1.4.10.jar:lib/kotlin-stdlib-common-1.4.0.jar:lib/log4j-api-2.17.1.jar:lib/log4j-core-2.17.1.jar:lib/okhttp-4.9.3.jar:lib/okio-2.8.0.jar:lib/snmp4j-3.6.3.jar:lib/snmp4j-agent-3.6.3.jar</classpath>

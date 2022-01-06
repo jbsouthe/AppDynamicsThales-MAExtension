@@ -14,6 +14,7 @@ public class Utility {
     private static Pattern patternDateStringWithT = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\..*");
     private static SimpleDateFormat simpleDateFormatWithoutT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z z");
     private static Pattern patternDateStringWithoutT = Pattern.compile("\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\s[+-]\\d{4}\\s[A-Z]{3}");
+    private static Pattern patternDecimalNumber = Pattern.compile("\\d+\\.\\d+");
     private static long dayInMilliseconds = 1000*60*60*24;
 
     public static long getDateFromString( String date ) throws ParseException {
@@ -40,5 +41,14 @@ public class Utility {
             logger.warn("Parse Exception on date '%s' message: %s",valid_until, e.getMessage());
             return -1;
         }
+    }
+
+    public static boolean isDecimalNumber( String candidate ) {
+        return patternDecimalNumber.matcher(candidate).matches();
+    }
+    public static long decimalToLong( String decimal ) {
+        Double number = Double.parseDouble(decimal);
+        number *= 100;
+        return number.longValue();
     }
 }

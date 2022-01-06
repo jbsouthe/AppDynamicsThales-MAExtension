@@ -16,7 +16,7 @@
                 <include>NOTICE.txt</include>
                 <include>log4j2.xml</include>
                 <include>monitor-EXAMPLE.xml</include>
-                <include>snmp-oids.json</include>
+                <include>Thales-Config-EXAMPLE.json</include>
             </includes>
             <lineEnding>unix</lineEnding>
             <fileMode>0644</fileMode>

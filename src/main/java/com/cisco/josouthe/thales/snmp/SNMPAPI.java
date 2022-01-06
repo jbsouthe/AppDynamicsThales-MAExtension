@@ -1,7 +1,9 @@
 package com.cisco.josouthe.thales.snmp;
 
+import com.cisco.josouthe.thales.configuration.ThalesEndpoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,8 +33,62 @@ public class SNMPAPI {
     private int retries=3;
     private int snmpVersion;
 
-    public SNMPAPI( Map<String,String> configMap, String taskWorkingDir, Logger parentLogger) throws TaskExecutionException, IOException {
-        if( parentLogger != null ) this.logger=parentLogger;
+    public SNMPAPI(ThalesEndpoint thalesEndpoint, TaskExecutionContext taskExecutionContext ) throws TaskExecutionException, IOException {
+        if( taskExecutionContext != null ) this.logger=taskExecutionContext.getLogger();
+        ThalesEndpoint.SNMPEndpoint snmpEndpoint = thalesEndpoint.getSnmpEndpoint();
+        this.address = GenericAddress.parse(snmpEndpoint.targetAddress);
+        this.communityName = snmpEndpoint.communityName;
+        SnmpBuilder snmpBuilder = new SnmpBuilder().udp().threads(2);
+        switch(snmpEndpoint.version.charAt(0)) {
+            case '1':{
+                this.snmpVersion = SnmpConstants.version1;
+                throw new TaskExecutionException("SNMP Version not yet implemented: "+ snmpEndpoint.version);
+            }
+            case '2':{
+                this.snmpVersion = SnmpConstants.version2c;
+                if( "".equals(communityName) ) throw new TaskExecutionException("SNMP v2 being used but Community Name Parameter is null?");
+                snmp = snmpBuilder.v2c().build();
+                targetBuilder = snmpBuilder.v2c().target(address)
+                        .community(new OctetString(communityName))
+                        .timeout(timeout).retries(retries);
+                break;
+            }
+            case '3': {
+                this.snmpVersion = SnmpConstants.version3;
+                List<String> errorParameters = new ArrayList<>();
+                if( "".equals(snmpEndpoint.securityName) ) errorParameters.add("Security Name");
+                if( errorParameters.size() > 0 ) {
+                    StringBuilder sb = new StringBuilder("SNMP v3 being used but missing needed parameter(s): ");
+                    for( String param : errorParameters ) sb.append(param+",");
+                    sb.deleteCharAt(sb.lastIndexOf(","));
+                    throw new TaskExecutionException(sb.toString());
+                }
+                snmp = snmpBuilder.v3().usm().build();
+                byte[] targetEngineID = snmp.discoverAuthoritativeEngineID(address, timeout);
+                if( targetEngineID == null ) throw new TaskExecutionException("Could not discover the SNMP Authoritative Engine");
+                targetBuilder = snmpBuilder.v3().target(address);
+                TargetBuilder<?>.DirectUserBuilder directUserBuilder = targetBuilder.user(snmpEndpoint.securityName, targetEngineID);
+                if( snmpEndpoint.authPassphrase != null )
+                    directUserBuilder = directUserBuilder.auth(getAuthProtocol(snmpEndpoint.authProtocol)).authPassphrase(snmpEndpoint.authPassphrase);
+                if( snmpEndpoint.privPassphrase != null )
+                    directUserBuilder = directUserBuilder.priv(getPrivProtocol(snmpEndpoint.privProtocol)).privPassphrase(snmpEndpoint.privPassphrase);
+                targetBuilder = directUserBuilder.done().timeout(timeout).retries(retries);
+                break;
+            }
+            default: throw new TaskExecutionException("Unknown SNMP Version? "+ snmpEndpoint.version);
+        }
+        snmp.listen();
+        this.oidMap = snmpEndpoint.oids;
+        if(logger.isDebugEnabled()) {
+            Target<?> target = targetBuilder.build();
+            target.setVersion(this.snmpVersion);
+            logger.debug(String.format("snmp target(%s): %s", getVersionString(target.getVersion()), target.toString()));
+        }
+        logger.info(String.format("Initialized SNMP API for version %s",snmpEndpoint.version));
+    }
+
+    public SNMPAPI(Map<String,String> configMap, TaskExecutionContext taskExecutionContext) throws TaskExecutionException, IOException {
+        if( taskExecutionContext != null ) this.logger=taskExecutionContext.getLogger();
         this.communityName=configMap.getOrDefault("snmp_communityName", "public");
         this.contextName=configMap.getOrDefault("snmp_contextName", "");
         String securityName=configMap.get("snmp_securityName");
@@ -41,7 +97,7 @@ public class SNMPAPI {
         String authProtocol=configMap.getOrDefault("snmp_authProtocol", "hmac384sha512");
         String privProtocol=configMap.getOrDefault("snmp_privProtocol", "aes256");
         String oidFile=configMap.getOrDefault("snmp_oidFile", "./snmp-oids.json");
-        if( taskWorkingDir!=null && !oidFile.startsWith("/") ) oidFile = taskWorkingDir +"/"+ oidFile;
+        if( taskExecutionContext!=null && !oidFile.startsWith("/") ) oidFile = taskExecutionContext.getTaskDir() +"/"+ oidFile;
         address = GenericAddress.parse(configMap.get("snmp_targetAddress"));
         String version = configMap.getOrDefault("snmp_version", "2");
         SnmpBuilder snmpBuilder = new SnmpBuilder().udp().threads(2);
@@ -92,6 +148,7 @@ public class SNMPAPI {
         }
         logger.info(String.format("Initialized SNMP API for version %s",version));
     }
+
 
     private String getVersionString( int v ) {
         switch (v) {

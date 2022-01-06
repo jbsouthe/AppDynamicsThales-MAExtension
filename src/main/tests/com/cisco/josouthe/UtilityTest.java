@@ -28,4 +28,12 @@ public class UtilityTest extends TestCase {
         System.out.println("3 days = "+ threeDays);
         assert threeDays == 3;
     }
+
+    public void testNumberConversion() {
+        assert Utility.isDecimalNumber("1.24") == true;
+        assert Utility.isDecimalNumber("100") == false;
+        assert Utility.isDecimalNumber("text") == false;
+        assert Utility.isDecimalNumber("1.2.3.5") == false;
+        assert Utility.decimalToLong("1.24") == 124;
+    }
 }
