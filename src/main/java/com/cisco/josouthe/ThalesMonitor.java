@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 public class ThalesMonitor extends AManagedMonitor {
-    private static final Logger logger = LogManager.getFormatterLogger();
+    private Logger logger = LogManager.getFormatterLogger();
     private String metricPrefix = "Custom Metrics|Thales Monitor|";
     private APICalls thalesAPIClient;
     private Analytics analyticsAPIClient;
@@ -28,6 +28,7 @@ public class ThalesMonitor extends AManagedMonitor {
 
     @Override
     public TaskOutput execute(Map<String, String> configMap, TaskExecutionContext taskExecutionContext) throws TaskExecutionException {
+        this.logger = taskExecutionContext.getLogger();
         this.thalesAPIClient = new APICalls( configMap.get("thalesURL"), configMap.get("apiUser"), configMap.get("apiPassword") );
         this.analyticsAPIClient = new Analytics( configMap.get("analytics_URL"), configMap.get("analytics_apiAccountName"), configMap.get("analytics_apiKey"));
         if( configMap.containsKey("metricPrefix") ) metricPrefix = "Custom Metrics|"+ configMap.get("metricPrefix");
@@ -35,7 +36,7 @@ public class ThalesMonitor extends AManagedMonitor {
             try {
                 this.snmpApiClient = new SNMPAPI(configMap, taskExecutionContext.getTaskDir(), taskExecutionContext.getLogger());
             } catch (IOException ioException) {
-                logger.warn("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage());
+                logger.warn(String.format("Could not configure SNMP settings, ignoring SNMP entirely :) "+ ioException.getMessage()));
             }
         }
         printMetric("up", 1,
@@ -57,16 +58,16 @@ public class ThalesMonitor extends AManagedMonitor {
                 try {
                     data.add(clientCertificateInfo.getSchemaData());
                 } catch (ParseException e) {
-                    logger.warn("Bad Date format in the client certificate data: %s", clientCertificateInfo.name);
+                    logger.warn(String.format("Bad Date format in the client certificate data: %s", clientCertificateInfo.name));
                 }
             }
             Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
             if( checkSchema == null || !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
             analyticsAPIClient.insertSchema(schema, data);
         } catch (IOException e) {
-            logger.warn("Error fetching Client Certificate Data, Exception: %s",e.getMessage());
+            logger.warn(String.format("Error fetching Client Certificate Data, Exception: %s",e.getMessage()));
         } catch (AnalyticsSchemaException e) {
-            logger.warn("Analytics Schema could not be determined for Client Certificate Info, Message: %s", e.getMessage());
+            logger.warn(String.format("Analytics Schema could not be determined for Client Certificate Info, Message: %s", e.getMessage()));
         }
 
         try {
@@ -84,9 +85,9 @@ public class ThalesMonitor extends AManagedMonitor {
             if( checkSchema == null || !checkSchema.exists() ) analyticsAPIClient.createSchema(schema);
             analyticsAPIClient.insertSchema(schema, data);
         } catch (IOException ioException) {
-            logger.warn("Error fetching Alarm Data, Exception: %s", ioException.getMessage());
+            logger.warn(String.format("Error fetching Alarm Data, Exception: %s", ioException.getMessage()));
         } catch (AnalyticsSchemaException e) {
-            logger.warn("Analytics Schema could not be determined for Alarms, Message: %s", e.getMessage());
+            logger.warn(String.format("Analytics Schema could not be determined for Alarms, Message: %s", e.getMessage()));
         }
 
         try {
@@ -95,7 +96,7 @@ public class ThalesMonitor extends AManagedMonitor {
             for( String state : tokensMap.keySet() )
                 printMetricCurrent("Tokens "+ state, tokensMap.get(state) );
         } catch (IOException ioException) {
-            logger.warn("Error fetching Token Data, Exception: %s", ioException.getMessage());
+            logger.warn(String.format("Error fetching Token Data, Exception: %s", ioException.getMessage()));
         }
 
         if( snmpApiClient != null ) {
@@ -125,7 +126,7 @@ public class ThalesMonitor extends AManagedMonitor {
 
     public void printMetric(String metricName, Object metricValue, String aggregation, String timeRollup, String cluster)
     {
-        logger.info("Print Metric: '%s%s'=%d",this.metricPrefix, metricName, metricValue);
+        logger.info(String.format("Print Metric: '%s%s'=%d",this.metricPrefix, metricName, metricValue));
         MetricWriter metricWriter = getMetricWriter(this.metricPrefix + metricName,
                 aggregation,
                 timeRollup,

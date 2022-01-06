@@ -33,7 +33,6 @@ public class SNMPAPI {
 
     public SNMPAPI( Map<String,String> configMap, String taskWorkingDir, Logger parentLogger) throws TaskExecutionException, IOException {
         if( parentLogger != null ) this.logger=parentLogger;
-        //logger.debug("Is noGetBulk set? %s", SNMP4JSettings.isNoGetBulk());
         this.communityName=configMap.getOrDefault("snmp_communityName", "public");
         this.contextName=configMap.getOrDefault("snmp_contextName", "");
         String securityName=configMap.get("snmp_securityName");
@@ -89,9 +88,9 @@ public class SNMPAPI {
         if(logger.isDebugEnabled()) {
             Target<?> target = targetBuilder.build();
             target.setVersion(this.snmpVersion);
-            logger.debug("snmp target(%s): %s", getVersionString(target.getVersion()), target.toString());
+            logger.debug(String.format("snmp target(%s): %s", getVersionString(target.getVersion()), target.toString()));
         }
-        logger.info("Initialized SNMP API for version %s",version);
+        logger.info(String.format("Initialized SNMP API for version %s",version));
     }
 
     private String getVersionString( int v ) {
@@ -114,7 +113,7 @@ public class SNMPAPI {
             Map<String,String> map = gson.fromJson(jsonFileContent.toString(), new HashMap<String, String>().getClass());
             if( map != null ) return map;
         } catch (IOException exception) {
-            logger.warn("Exception while reading the external file %s, message: %s", oidFile, exception);
+            logger.warn(String.format("Exception while reading the external file %s, message: %s", oidFile, exception));
         }
         Map<String,String> map = new HashMap<>();
         map.put("1.3.6.1.4.1.2021.10.1.3.1", "1 minute load average");
@@ -152,11 +151,11 @@ public class SNMPAPI {
     }
 
     public List<VariableBinding> getOIDs( Set<String> oids) throws TaskExecutionException {
-        logger.debug("getOIDs beginning(%d): %s",oids.size(), oids);
+        logger.debug(String.format("getOIDs beginning(%d): %s",oids.size(), oids));
         PDU pdu = null;
         Target<?> target = this.targetBuilder.build();
         target.setVersion(this.snmpVersion);
-        logger.info("Target version %s for target: %s",target.getVersion(),target.toString());
+        logger.info(String.format("Target version %s for target: %s",target.getVersion(),target.toString()));
         switch (target.getVersion()) {
             case SnmpConstants.version1:
             case SnmpConstants.version2c: {
@@ -181,22 +180,22 @@ public class SNMPAPI {
         for( String oidName : oids ) {
             pdu.addOID( new VariableBinding( new OID(oidName)));
         }
-        logger.debug("Request PDU: %s", pdu);
+        logger.debug(String.format("Request PDU: %s", pdu));
         SnmpCompletableFuture snmpRequestFuture = SnmpCompletableFuture.send(snmp, target, pdu);
-        logger.debug("SnmpCompletableFuture created: %s",snmpRequestFuture.toString());
+        logger.debug(String.format("SnmpCompletableFuture created: %s",snmpRequestFuture.toString()));
         try {
             PDU responsePDU = snmpRequestFuture.get();
-            logger.debug("ResponsePDU: %s SnmpCompletableFuture: %s",responsePDU, snmpRequestFuture);
+            logger.debug(String.format("ResponsePDU: %s SnmpCompletableFuture: %s",responsePDU, snmpRequestFuture));
             if( responsePDU.getErrorStatus() != PDU.noError ) {
-                logger.warn("Response returned error: %s",responsePDU.getErrorStatusText());
+                logger.warn(String.format("Response returned error: %s",responsePDU.getErrorStatusText()));
                 throw new TaskExecutionException(responsePDU.getErrorStatusText());
             }
             List<VariableBinding> vbs = responsePDU.getAll();
-            logger.debug("List<VariableBinding> returned with size: %d",(vbs==null?0:vbs.size()));
+            logger.debug(String.format("List<VariableBinding> returned with size: %d",(vbs==null?0:vbs.size())));
             return vbs;
         } catch (Exception ex) {
             if (ex.getCause() != null) {
-                logger.warn("Error in processing: %s",ex.getCause().getMessage(),ex.getCause());
+                logger.warn(String.format("Error in processing: %s",ex.getCause().getMessage(),ex.getCause()));
                 throw new TaskExecutionException(ex.getCause().getMessage());
             } else {
                 throw new TaskExecutionException(ex.getMessage());
