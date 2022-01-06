@@ -70,7 +70,7 @@ public class ThalesMonitor extends AManagedMonitor {
             SNMPAPI snmpApiClient = null;
             if ( !"unconfigured".equals(thalesEndpoint.snmpEndpoint.targetAddress)) {
                 try {
-                    snmpApiClient = new SNMPAPI(thalesEndpoint, taskExecutionContext);
+                    snmpApiClient = new SNMPAPI(thalesEndpoint.snmpEndpoint, taskExecutionContext);
                 } catch (IOException ioException) {
                     logger.warn(String.format("Could not configure SNMP settings, ignoring SNMP entirely :) " + ioException.getMessage()));
                 }
