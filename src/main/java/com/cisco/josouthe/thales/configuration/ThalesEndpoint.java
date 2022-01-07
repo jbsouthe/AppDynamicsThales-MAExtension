@@ -10,7 +10,7 @@ public class ThalesEndpoint {
     public SNMPEndpoint getSnmpEndpoint() { return snmpEndpoint; }
 
     public class SNMPEndpoint {
-        public String targetAddress="unconfigured", version="2", communityName="public", contextName, securityName, authPassphrase, authProtocol="hmac384sha512", privPassphrase, privProtocol="aes256";
+        public String targetAddress="unconfigured", version="2", communityName="public", contextName="", securityName, authPassphrase, authProtocol="hmac384sha512", privPassphrase, privProtocol="aes256";
         public Map<String,String> oids = new HashMap<String,String>(){{
             put("1.3.6.1.4.1.2021.10.1.3.1", "1 minute load average");
             put("1.3.6.1.4.1.2021.10.1.3.2", "5 minute load average");
