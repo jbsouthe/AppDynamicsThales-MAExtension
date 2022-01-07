@@ -160,9 +160,9 @@ public class ThalesMonitor extends AManagedMonitor {
     {
         if( Utility.isDecimalNumber(String.valueOf(metricValue))){
             metricName += " (x100)";
-            metricValue = String.valueOf(Utility.decimalToLong(String.valueOf(metricValue)));
+            metricValue = Utility.decimalToLong(String.valueOf(metricValue));
         }
-        logger.info(String.format("Print Metric: '%s%s'=%d",this.metricPrefix, metricName, metricValue));
+        logger.info(String.format("Print Metric: '%s%s'=%s",this.metricPrefix, metricName, metricValue));
         MetricWriter metricWriter = getMetricWriter(this.metricPrefix + metricName,
                 aggregation,
                 timeRollup,
