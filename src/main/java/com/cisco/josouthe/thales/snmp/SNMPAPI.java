@@ -72,6 +72,7 @@ public class SNMPAPI {
                 if( snmpEndpoint.privPassphrase != null )
                     directUserBuilder = directUserBuilder.priv(getPrivProtocol(snmpEndpoint.privProtocol)).privPassphrase(snmpEndpoint.privPassphrase);
                 targetBuilder = directUserBuilder.done().timeout(timeout).retries(retries);
+                this.contextName = snmpEndpoint.contextName;
                 break;
             }
             default: throw new TaskExecutionException("Unknown SNMP Version? "+ snmpEndpoint.version);
