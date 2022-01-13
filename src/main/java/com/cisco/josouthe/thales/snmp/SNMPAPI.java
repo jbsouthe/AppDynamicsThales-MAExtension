@@ -1,22 +1,20 @@
 package com.cisco.josouthe.thales.snmp;
 
 import com.cisco.josouthe.thales.configuration.ThalesEndpoint;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.snmp4j.*;
+import org.snmp4j.PDU;
+import org.snmp4j.Snmp;
+import org.snmp4j.Target;
+import org.snmp4j.TransportMapping;
 import org.snmp4j.fluent.SnmpBuilder;
 import org.snmp4j.fluent.SnmpCompletableFuture;
 import org.snmp4j.fluent.TargetBuilder;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
@@ -84,7 +82,7 @@ public class SNMPAPI {
             target.setVersion(this.snmpVersion);
             logger.debug(String.format("snmp target(%s): %s", getVersionString(target.getVersion()), target.toString()));
         }
-        logger.info(String.format("Initialized SNMP API for version %s",snmpEndpoint.version));
+        logger.debug(String.format("Initialized SNMP API for version %s",snmpEndpoint.version));
     }
 
 
@@ -95,30 +93,6 @@ public class SNMPAPI {
             case SnmpConstants.version3: return "v3";
             default: return "unknown-version";
         }
-    }
-    private Map<String, String> loadExternalSNMPOidList(String oidFile) {
-        try {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            File snmpoidsFile = new File(oidFile);
-            BufferedReader reader = new BufferedReader(new FileReader(snmpoidsFile));
-            StringBuilder jsonFileContent = new StringBuilder();
-            while (reader.ready()) {
-                jsonFileContent.append(reader.readLine());
-            }
-            Map<String,String> map = gson.fromJson(jsonFileContent.toString(), new HashMap<String, String>().getClass());
-            if( map != null ) return map;
-        } catch (IOException exception) {
-            logger.warn(String.format("Exception while reading the external file %s, message: %s", oidFile, exception));
-        }
-        Map<String,String> map = new HashMap<>();
-        map.put("1.3.6.1.4.1.2021.10.1.3.1", "1 minute load average");
-        map.put("1.3.6.1.4.1.2021.10.1.3.2", "5 minute load average");
-        map.put("1.3.6.1.4.1.2021.10.1.3.3", "15 minute load average");
-        map.put("1.3.6.1.4.1.2021.11.11.0", "CPU Idle %");
-        map.put("1.3.6.1.4.1.2021.11.9.0", "CPU User %");
-        map.put("1.3.6.1.4.1.2021.4.4.0", "Swap Available");
-        map.put("1.3.6.1.4.1.2021.4.3.0", "Swap Total");
-        return map;
     }
 
     private TargetBuilder.AuthProtocol getAuthProtocol( String name ) throws TaskExecutionException {
@@ -139,31 +113,39 @@ public class SNMPAPI {
 
     public Map<String,String> getAllData() throws TaskExecutionException {
         Map<String,String> data = new HashMap<>();
-        for( VariableBinding variableBinding : getOIDs(this.oidMap.keySet()))  {
+        for( String oid : this.oidMap.keySet())  {
+            List<VariableBinding> variableBindings = getOID(oid);
+            if( variableBindings == null || variableBindings.isEmpty() ) {
+                logger.warn("No data returned from snmp request");
+                continue;
+            }
+            VariableBinding variableBinding = variableBindings.get(0);
+            logger.debug(String.format("SNMP Data: requested '%s(%s)' returned %s=%s", this.oidMap.get(oid), oid,  getOIDMetricName(variableBinding.getOid().toString()),variableBinding.toValueString()));
             data.put( getOIDMetricName(variableBinding.getOid().toString()), variableBinding.toValueString());
         }
         return data;
     }
 
-    public List<VariableBinding> getOIDs( Set<String> oids) throws TaskExecutionException {
-        logger.debug(String.format("getOIDs beginning(%d): %s",oids.size(), oids));
+    public List<VariableBinding> getOID( String oid ) throws TaskExecutionException {
+        logger.debug(String.format("getOIDs beginning(1): %s", oid));
         PDU pdu = null;
         Target<?> target = this.targetBuilder.build();
         target.setVersion(this.snmpVersion);
-        logger.info(String.format("Target version %s for target: %s",target.getVersion(),target.toString()));
+        logger.debug(String.format("Target version %s for target: %s",target.getVersion(),target.toString()));
         switch (target.getVersion()) {
             case SnmpConstants.version1:
             case SnmpConstants.version2c: {
                 pdu = targetBuilder
                         .pdu()
-                        .type(PDU.GETNEXT)
+                        .type(PDU.GET)
                         .build();
                 break;
             }
             case SnmpConstants.version3: {
                 pdu = targetBuilder
                         .pdu()
-                        .type(PDU.GETNEXT)
+                        //.type(PDU.GETNEXT)
+                        .type(PDU.GET)
                         .contextName(contextName)
                         .build();
                 break;
@@ -172,9 +154,9 @@ public class SNMPAPI {
                 throw new TaskExecutionException(String.format("SNMP version not yet implemented: %s",target.getVersion()));
             }
         }
-        for( String oidName : oids ) {
-            pdu.addOID( new VariableBinding( new OID(oidName)));
-        }
+        //for( String oidName : oids ) {
+            pdu.addOID( new VariableBinding( new OID(oid)));
+        //}
         logger.debug(String.format("Request PDU: %s", pdu));
         SnmpCompletableFuture snmpRequestFuture = SnmpCompletableFuture.send(snmp, target, pdu);
         logger.debug(String.format("SnmpCompletableFuture created: %s",snmpRequestFuture.toString()));
@@ -199,7 +181,10 @@ public class SNMPAPI {
     }
 
     public String getOIDMetricName( String oid ) {
-        return this.oidMap.get(oid);
+        logger.debug(String.format("getOIDMetricName: oidmap(size:%d) lookup contains '%s'? '%s' is '%s'",this.oidMap.size(), oid, this.oidMap.containsKey(oid), String.valueOf(this.oidMap.get(oid))));
+        String name = this.oidMap.get(oid);
+        if( name == null ) name = this.oidMap.get("."+oid);
+        return name;
     }
 
     public void close() {
