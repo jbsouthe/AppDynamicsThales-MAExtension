@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,5 +104,19 @@ public class Analytics {
     public String deleteSchema( String name ) throws IOException, AnalyticsSchemaException {
         if( name == null ) throw new AnalyticsSchemaException("Schema name is null in delete request!");
         return deleteRequest("events/schema/"+name );
+    }
+
+    @SuppressWarnings("unchecked")
+    public void insertAllData( Object dataListParameter ) throws AnalyticsSchemaException, IOException {
+        List<SchemaData> dataList = (List<SchemaData>) dataListParameter;
+        ArrayList<Map<String, String>> data = new ArrayList<>();
+        Schema schema = null;
+        for (SchemaData schemaData : dataList) {
+            if (schema == null) schema = schemaData.getSchemaDefinition();
+            data.add(schemaData.getSchemaData());
+        }
+        Schema checkSchema = getSchema(schema.name);
+        if (checkSchema == null || !checkSchema.exists()) createSchema(schema);
+        insertSchema(schema, data);
     }
 }

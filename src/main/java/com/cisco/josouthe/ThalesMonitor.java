@@ -2,7 +2,6 @@ package com.cisco.josouthe;
 
 import com.cisco.josouthe.thales.analytics.Analytics;
 import com.cisco.josouthe.thales.analytics.AnalyticsSchemaException;
-import com.cisco.josouthe.thales.analytics.Schema;
 import com.cisco.josouthe.thales.api.APICalls;
 import com.cisco.josouthe.thales.api.data.*;
 import com.cisco.josouthe.thales.configuration.ThalesEndpoint;
@@ -20,8 +19,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Map;
 
 public class ThalesMonitor extends AManagedMonitor {
@@ -79,22 +76,10 @@ public class ThalesMonitor extends AManagedMonitor {
             try {
                 ListClientCerts listClientCerts = thalesAPIClient.listClientsCerts();
                 printMetricCurrent(thalesEndpoint.name+"|Total Client Certificates", listClientCerts.total);
-                ArrayList<Map<String, String>> data = new ArrayList<>();
-                Schema schema = null;
                 for (ClientCertificateInfo clientCertificateInfo : listClientCerts.resources) {
                     printMetricCurrent(thalesEndpoint.name+"|Client Certificates|" + clientCertificateInfo.name, clientCertificateInfo.daysUntilExpired());
-                    if (schema == null) {
-                        schema = clientCertificateInfo.getSchemaDefinition();
-                    }
-                    try {
-                        data.add(clientCertificateInfo.getSchemaData());
-                    } catch (ParseException e) {
-                        logger.warn(String.format("Bad Date format in the client certificate data: %s", clientCertificateInfo.name));
-                    }
                 }
-                Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
-                if (checkSchema == null || !checkSchema.exists()) analyticsAPIClient.createSchema(schema);
-                analyticsAPIClient.insertSchema(schema, data);
+                analyticsAPIClient.insertAllData(listClientCerts.resources);
             } catch (IOException e) {
                 logger.warn(String.format("Error fetching Client Certificate Data, Exception: %s", e.getMessage()));
             } catch (AnalyticsSchemaException e) {
@@ -106,15 +91,7 @@ public class ThalesMonitor extends AManagedMonitor {
                 Map<String, Integer> alarmsMap = listAlarms.getActiveAlarmCountsBySeverity();
                 for (String severity : alarmsMap.keySet())
                     printMetricCurrent(thalesEndpoint.name+"|Alarms Active Severity " + severity, alarmsMap.get(severity));
-                ArrayList<Map<String, String>> data = new ArrayList<>();
-                Schema schema = null;
-                for (Alarm alarm : listAlarms.resources) {
-                    if (schema == null) schema = alarm.getSchemaDefinition();
-                    data.add(alarm.getSchemaData());
-                }
-                Schema checkSchema = analyticsAPIClient.getSchema(schema.name);
-                if (checkSchema == null || !checkSchema.exists()) analyticsAPIClient.createSchema(schema);
-                analyticsAPIClient.insertSchema(schema, data);
+                analyticsAPIClient.insertAllData( listAlarms.resources);
             } catch (IOException ioException) {
                 logger.warn(String.format("Error fetching Alarm Data, Exception: %s", ioException.getMessage()));
             } catch (AnalyticsSchemaException e) {
@@ -128,6 +105,34 @@ public class ThalesMonitor extends AManagedMonitor {
                     printMetricCurrent(thalesEndpoint.name+"|Tokens " + state, tokensMap.get(state));
             } catch (IOException ioException) {
                 logger.warn(String.format("Error fetching Token Data, Exception: %s", ioException.getMessage()));
+            }
+
+            try {
+                ListClients listClients = thalesAPIClient.listClients();
+                analyticsAPIClient.insertAllData(listClients.resources);
+            } catch (Exception exception) {
+                logger.warn(String.format("Error fetching Client Token Data, Exception: %s", exception.getMessage()));
+            }
+
+            try {
+                ListClientHealthReport listClientHealthReport = thalesAPIClient.listClientHealthReport();
+                analyticsAPIClient.insertAllData(listClientHealthReport.resources);
+            } catch (Exception exception) {
+                logger.warn(String.format("Error fetching Client Health Data, Exception: %s", exception.getMessage()));
+            }
+
+            try {
+                ListClusterNodeHealth listClusterNodeHealth = thalesAPIClient.clusterNodes();
+                analyticsAPIClient.insertAllData(listClusterNodeHealth.resources);
+            } catch (Exception exception) {
+                logger.warn(String.format("Error fetching Cluster Node Health Data, Exception: %s", exception.getMessage()));
+            }
+
+            try {
+                ListConnections listConnections = thalesAPIClient.listConnections();
+                analyticsAPIClient.insertAllData(listConnections.resources);
+            } catch (Exception exception) {
+                logger.warn(String.format("Error fetching Connection Data, Exception: %s", exception.getMessage()));
             }
 
             if (snmpApiClient != null) {

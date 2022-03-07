@@ -198,7 +198,11 @@ public class APICalls {
 	}
 
 	public ListConnections listConnections() throws IOException {
-		return listConnections(0,256);
+		ListConnections listConnections = listConnections(0, maxLimit);
+		while (listConnections.hasMore() ) {
+			listConnections.add( listConnections(listConnections.limit, maxLimit));
+		}
+		return listConnections;
 	}
 
 	private ListConnections listConnections(int skip, int limit) throws IOException {

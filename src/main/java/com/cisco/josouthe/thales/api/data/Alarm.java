@@ -3,13 +3,14 @@ package com.cisco.josouthe.thales.api.data;
 import com.cisco.josouthe.Utility;
 import com.cisco.josouthe.thales.analytics.AnalyticsSchemaException;
 import com.cisco.josouthe.thales.analytics.Schema;
+import com.cisco.josouthe.thales.analytics.SchemaData;
 
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Alarm {
+public class Alarm implements SchemaData {
     public String id, uri, account, application, devAccount, createdAt, triggeredAt, name, state, description, severity,
             service, source, sourceID;
     boolean internal;
